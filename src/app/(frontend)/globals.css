@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-size: unset;
+    font-weight: unset;
+  }
+
+  :root {
+    /* Afrimall Brand Colors */
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* African-inspired primary colors - Rich Orange/Gold */
+    --primary: 25 95% 53%; /* #FF8C00 - African sunset orange */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Deep African Red */
+    --secondary: 0 73% 41%; /* #B22222 - African earth red */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accent - Warm Gold */
+    --accent: 45 100% 51%; /* #FFD700 - African gold */
+    --accent-foreground: 222.2 84% 4.9%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 25 95% 53%;
+
+    --radius: 0.5rem;
+
+    --success: 142 76% 36%; /* African green */
+    --warning: 45 93% 47%; /* African amber */
+    --error: 0 84% 60%;
+    
+    /* Custom Afrimall Colors */
+    --afrimall-orange: 25 95% 53%;
+    --afrimall-red: 0 73% 41%;
+    --afrimall-gold: 45 100% 51%;
+    --afrimall-green: 142 76% 36%;
+    --afrimall-brown: 30 67% 25%; /* African earth brown */
+  }
+
+  [data-theme='dark'] {
+    --background: 0 0% 0%;
+    --foreground: 210 40% 98%;
+
+    --card: 0 0% 4%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 0, 0%, 15%, 0.8;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    --success: 196 100% 14%;
+    --warning: 34 51% 25%;
+    --error: 10 39% 43%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground min-h-[100vh] flex flex-col;
+  }
+}
+
+html {
+  opacity: 0;
+}
+
+html[data-theme='dark'],
+html[data-theme='light'] {
+  opacity: initial;
+}
+
+/* Afrimall African Cultural Elements */
+@layer components {
+  .african-pattern {
+    background-image: 
+      radial-gradient(circle at 25% 25%, hsl(var(--afrimall-gold)) 2px, transparent 2px),
+      radial-gradient(circle at 75% 75%, hsl(var(--afrimall-orange)) 2px, transparent 2px);
+    background-size: 20px 20px;
+    background-position: 0 0, 10px 10px;
+  }
+  
+  .african-border {
+    position: relative;
+  }
+  
+  .african-border::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+      hsl(var(--afrimall-orange)), 
+      hsl(var(--afrimall-gold)), 
+      hsl(var(--afrimall-red)), 
+      hsl(var(--afrimall-green)),
+      hsl(var(--afrimall-orange))
+    );
+  }
+  
+  .afrimall-gradient-text {
+    background: linear-gradient(135deg, 
+      hsl(var(--afrimall-orange)), 
+      hsl(var(--afrimall-gold)), 
+      hsl(var(--afrimall-red))
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  
+  .afrimall-shadow {
+    box-shadow: 
+      0 4px 6px -1px rgba(255, 140, 0, 0.1),
+      0 2px 4px -1px rgba(255, 140, 0, 0.06);
+  }
+  
+  .afrimall-shadow:hover {
+    box-shadow: 
+      0 10px 15px -3px rgba(255, 140, 0, 0.2),
+      0 4px 6px -2px rgba(255, 140, 0, 0.1);
+  }
+}
+
+/* African-inspired animations */
+@keyframes african-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.african-pulse {
+  animation: african-pulse 2s ease-in-out infinite;
+}

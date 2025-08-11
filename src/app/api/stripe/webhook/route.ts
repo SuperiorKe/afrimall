@@ -1,0 +1,143 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { stripe } from '@/utilities/stripe'
+import { getPayloadHMR } from '@payloadcms/next/utilities'
+import configPromise from '@payload-config'
+import {
+  createSuccessResponse,
+  createErrorResponse,
+  withErrorHandling,
+  ApiError,
+} from '@/utilities/apiResponse'
+import { logger } from '@/utilities/logger'
+
+export const POST = withErrorHandling(async (request: NextRequest) => {
+  const body = await request.text()
+  const signature = request.headers.get('stripe-signature')
+
+  if (!signature) {
+    logger.error('No Stripe signature found', 'API:stripe/webhook')
+    throw new ApiError('No signature', 400, 'MISSING_SIGNATURE')
+  }
+
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    logger.error('STRIPE_WEBHOOK_SECRET not configured', 'API:stripe/webhook')
+    throw new ApiError('Webhook not configured', 500, 'WEBHOOK_NOT_CONFIGURED')
+  }
+
+  let event
+
+  try {
+    // Verify webhook signature
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
+  } catch (err: any) {
+    logger.error('Webhook signature verification failed', 'API:stripe/webhook', err as Error)
+    throw new ApiError('Invalid signature', 400, 'INVALID_SIGNATURE')
+  }
+
+  const payload = await getPayloadHMR({ config: configPromise })
+
+  try {
+    switch (event.type) {
+      case 'payment_intent.succeeded': {
+        const paymentIntent = event.data.object
+        const orderId = paymentIntent.metadata.orderId
+
+        if (orderId) {
+          // Update order status to paid
+          await payload.update({
+            collection: 'orders',
+            id: orderId,
+            data: {
+              paymentStatus: 'paid',
+              paymentReference: paymentIntent.id,
+              status: 'confirmed',
+            },
+          })
+
+          logger.info(`Order ${orderId} marked as paid`, 'API:stripe/webhook')
+        }
+        break
+      }
+
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object
+        const orderId = paymentIntent.metadata.orderId
+
+        if (orderId) {
+          // Update order status to failed
+          await payload.update({
+            collection: 'orders',
+            id: orderId,
+            data: {
+              paymentStatus: 'failed',
+              paymentReference: paymentIntent.id,
+            },
+          })
+
+          logger.info(`Order ${orderId} payment failed`, 'API:stripe/webhook')
+        }
+        break
+      }
+
+      case 'payment_intent.requires_action': {
+        const paymentIntent = event.data.object
+        const orderId = paymentIntent.metadata.orderId
+
+        if (orderId) {
+          // Payment requires additional action (3D Secure, etc.)
+          await payload.update({
+            collection: 'orders',
+            id: orderId,
+            data: {
+              paymentStatus: 'pending',
+              paymentReference: paymentIntent.id,
+              notes: 'Payment requires additional authentication',
+            },
+          })
+
+          logger.info(`Order ${orderId} requires payment action`, 'API:stripe/webhook')
+        }
+        break
+      }
+
+      case 'charge.dispute.created': {
+        const dispute = event.data.object
+        const chargeId = dispute.charge
+
+        // Find order by payment reference
+        const orders = await payload.find({
+          collection: 'orders',
+          where: {
+            paymentReference: {
+              equals: chargeId,
+            },
+          },
+          limit: 1,
+        })
+
+        if (orders.docs.length > 0) {
+          const order = orders.docs[0]
+          await payload.update({
+            collection: 'orders',
+            id: order.id,
+            data: {
+              status: 'cancelled',
+              internalNotes: `Dispute created: ${dispute.reason}`,
+            },
+          })
+
+          logger.info(`Dispute created for order ${order.id}`, 'API:stripe/webhook')
+        }
+        break
+      }
+
+      default:
+        logger.info(`Unhandled event type: ${event.type}`, 'API:stripe/webhook')
+    }
+
+    return createSuccessResponse({ received: true })
+  } catch (error: any) {
+    logger.error('Error processing webhook', 'API:stripe/webhook', error)
+    return createErrorResponse(500, 'WEBHOOK_PROCESSING_FAILED', 'Webhook processing failed')
+  }
+})
