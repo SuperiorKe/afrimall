@@ -1,12 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
-import {
-  createSuccessResponse,
-  createErrorResponse,
-  withErrorHandling,
-  ApiError,
-} from '@/utilities/apiResponse'
+import { createSuccessResponse, withErrorHandling, ApiError } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
 
 // GET cart by customer ID or session ID
@@ -23,7 +18,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     }
 
     // Build where clause
-    const where: any = {
+    const where: Record<string, unknown> = {
       status: { equals: 'active' },
     }
 
@@ -76,7 +71,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     }
 
     // Find existing cart
-    const where: any = {
+    const where: Record<string, unknown> = {
       status: { equals: 'active' },
     }
 
@@ -105,7 +100,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       })
     } else {
       // Create new cart
-      const cartData: any = {
+      const cartData: Record<string, unknown> = {
         items,
         currency,
         status: 'active',

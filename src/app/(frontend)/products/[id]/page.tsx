@@ -4,9 +4,10 @@ import configPromise from '@payload-config'
 import { ProductDetail } from '@/components/ecommerce/ProductDetail'
 import { ProductGallery } from '@/components/ecommerce/ProductGallery'
 import { RelatedProducts } from '@/components/ecommerce/RelatedProducts'
-import { generateMeta } from '@/utilities/generateMeta'
+
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import type { Media } from '@/payload-types'
 
 type Props = {
   params: Promise<{ id: string }>
@@ -21,10 +22,6 @@ export default async function ProductPage({ params }: Props) {
     const product = await payload.findByID({
       collection: 'products',
       id,
-      populate: {
-        categories: true,
-        images: true,
-      },
     })
 
     if (!product || product.status !== 'active') {
@@ -38,9 +35,6 @@ export default async function ProductPage({ params }: Props) {
         product: { equals: id },
         status: { equals: 'active' },
       },
-      populate: {
-        images: true,
-      },
     })
 
     // Fetch related products (same category, excluding current product)
@@ -50,14 +44,14 @@ export default async function ProductPage({ params }: Props) {
         and: [
           { status: { equals: 'active' } },
           { id: { not_equals: id } },
-          { categories: { in: product.categories?.map((cat: any) => cat.id) || [] } },
+          {
+            categories: {
+              in: product.categories?.map((cat) => (typeof cat === 'number' ? cat : cat.id)) || [],
+            },
+          },
         ],
       },
       limit: 4,
-      populate: {
-        categories: true,
-        images: true,
-      },
     })
 
     return (
@@ -97,8 +91,8 @@ export default async function ProductPage({ params }: Props) {
         )}
       </div>
     )
-  } catch (error) {
-    console.error('Error fetching product:', error)
+  } catch (_error) {
+    console.error('Error fetching product:', _error)
     notFound()
   }
 }
@@ -111,9 +105,6 @@ export async function generateStaticParams() {
     where: { status: { equals: 'active' } },
     limit: 1000,
     pagination: false,
-    select: {
-      id: true,
-    },
   })
 
   return products.docs.map((product) => ({
@@ -129,9 +120,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const product = await payload.findByID({
       collection: 'products',
       id,
-      populate: {
-        images: true,
-      },
     })
 
     if (!product) {
@@ -145,20 +133,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description = product.seo?.description || product.description
     const image = product.images?.[0]?.image
 
+    // Helper function to get image URL
+    const getImageUrl = (image: number | Media | null | undefined): string | null => {
+      if (!image) return null
+      if (typeof image === 'number') return null // ID reference, not populated
+      if (image.filename) return `/api/media/file/${image.filename}`
+      return null
+    }
+
+    const imageUrl = getImageUrl(image)
+
     return {
       title: `${title} - Afrimall`,
       description,
       openGraph: {
         title,
         description,
-        images: image ? [`/api/media/file/${image.filename}`] : [],
-        type: 'product',
+        images: imageUrl ? [imageUrl] : [],
+        type: 'website',
       },
       twitter: {
         card: 'summary_large_image',
         title,
         description,
-        images: image ? [`/api/media/file/${image.filename}`] : [],
+        images: imageUrl ? [imageUrl] : [],
       },
     }
   } catch (error) {

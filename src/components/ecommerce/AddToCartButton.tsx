@@ -16,7 +16,7 @@ interface AddToCartButtonProps {
 
 export function AddToCartButton({
   productId,
-  productTitle,
+  _productTitle,
   price,
   variantId,
   quantity = 1,
@@ -49,18 +49,26 @@ export function AddToCartButton({
       )
       const cartData = await cartResponse.json()
 
-      let currentItems = cartData.data?.items || []
+      const currentItems = cartData.data?.items || []
 
       // Check if item already exists in cart
       const existingItemIndex = currentItems.findIndex(
-        (item: any) => item.product === productId && item.variant === variantId,
+        (item: { product: string; variant?: string }) =>
+          item.product === productId && item.variant === variantId,
       )
 
+      const updatedItems
       if (existingItemIndex >= 0) {
         // Update quantity of existing item
-        currentItems[existingItemIndex].quantity += quantity
-        currentItems[existingItemIndex].totalPrice =
-          currentItems[existingItemIndex].quantity * currentItems[existingItemIndex].unitPrice
+        updatedItems = currentItems.map((item, index) =>
+          index === existingItemIndex
+            ? {
+                ...item,
+                quantity: item.quantity + quantity,
+                totalPrice: (item.quantity + quantity) * item.unitPrice,
+              }
+            : item,
+        )
       } else {
         // Add new item to cart
         const newItem = {
@@ -71,7 +79,7 @@ export function AddToCartButton({
           totalPrice: price * quantity,
           addedAt: new Date().toISOString(),
         }
-        currentItems.push(newItem)
+        updatedItems = [...currentItems, newItem]
       }
 
       // Update cart
@@ -83,7 +91,7 @@ export function AddToCartButton({
         body: JSON.stringify({
           customerId,
           sessionId: !customerId ? sessionId : undefined,
-          items: currentItems,
+          items: updatedItems,
         }),
       })
 

@@ -4,6 +4,8 @@ import configPromise from '@payload-config'
 import Link from 'next/link'
 import { Metadata } from 'next'
 import { Logo } from '@/components/Logo/Logo'
+import Image from 'next/image'
+import type { Media } from '@/payload-types'
 
 export const metadata: Metadata = {
   title: 'Categories - Afrimall',
@@ -19,9 +21,6 @@ export default async function CategoriesPage() {
     collection: 'categories',
     where: { status: { equals: 'active' } },
     sort: 'sortOrder',
-    populate: {
-      image: true,
-    },
   })
 
   // Get product counts for each category
@@ -41,9 +40,8 @@ export default async function CategoriesPage() {
     }),
   )
 
-  // Separate featured and regular categories
+  // Separate featured categories
   const featuredCategories = categoriesWithCounts.filter((cat) => cat.featured)
-  const regularCategories = categoriesWithCounts.filter((cat) => !cat.featured)
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -107,7 +105,7 @@ export default async function CategoriesPage() {
             No Categories Yet
           </h3>
           <p className="text-gray-600 dark:text-gray-300 mb-6">
-            Categories haven't been set up yet. Please check back later or contact the
+            Categories haven&apos;t been set up yet. Please check back later or contact the
             administrator.
           </p>
           <Link
@@ -123,7 +121,31 @@ export default async function CategoriesPage() {
 }
 
 // Category Card Component
-function CategoryCard({ category, featured = false }: { category: any; featured?: boolean }) {
+function CategoryCard({
+  category,
+  featured = false,
+}: {
+  category: {
+    id: number
+    title: string
+    description?: string | null
+    image?: number | Media | null
+    productCount: number
+    featured?: boolean | null
+  }
+  featured?: boolean
+}) {
+  // Helper function to get image URL
+  const getImageUrl = (image: number | Media | null | undefined): string | null => {
+    if (!image) return null
+    if (typeof image === 'number') return null // ID reference, not populated
+    if (image.url) return image.url
+    if (image.filename) return `/api/media/file/${image.filename}`
+    return null
+  }
+
+  const imageUrl = getImageUrl(category.image)
+
   return (
     <Link
       href={`/products?category=${category.id}`}
@@ -133,11 +155,16 @@ function CategoryCard({ category, featured = false }: { category: any; featured?
     >
       {/* Category Image */}
       <div className={`relative ${featured ? 'h-48' : 'h-32'} bg-gray-200 dark:bg-gray-700`}>
-        {category.image && typeof category.image === 'object' && category.image.url ? (
-          <img
-            src={category.image.url}
-            alt={category.image.alt || category.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        {imageUrl ? (
+          <Image
+            src={imageUrl}
+            alt={
+              category.image && typeof category.image === 'object'
+                ? category.image.alt || category.title
+                : category.title
+            }
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

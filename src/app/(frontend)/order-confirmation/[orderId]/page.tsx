@@ -172,8 +172,8 @@ export default function OrderConfirmationPage() {
             <div className="mt-8 border-t border-gray-200 pt-8">
               <h3 className="text-lg font-medium text-gray-900 mb-4">What happens next?</h3>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li>• You'll receive an email confirmation shortly</li>
-                <li>• We'll notify you when your order ships</li>
+                <li>• You&apos;ll receive an email confirmation shortly</li>
+                <li>• We&apos;ll notify you when your order ships</li>
                 <li>• Track your order status in your account</li>
               </ul>
             </div>

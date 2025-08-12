@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
 import {
   createSuccessResponse,
-  createErrorResponse,
   withErrorHandling,
   ApiError,
 } from '@/utilities/apiResponse'

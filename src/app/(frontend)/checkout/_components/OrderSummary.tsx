@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import Image from 'next/image';
 
 type CartItem = {
   id: number;
@@ -55,9 +56,11 @@ export function OrderSummary() {
         {cartItems.map((item) => (
           <div key={item.id} className="flex items-center justify-between pb-4 border-b">
             <div className="flex items-center">
-              <img
+              <Image
                 src={item.image}
                 alt={item.name}
+                width={64}
+                height={64}
                 className="w-16 h-16 object-cover rounded"
               />
               <div className="ml-4">

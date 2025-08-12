@@ -9,7 +9,7 @@ import { OrderReview } from './steps/OrderReview'
 import { Button } from '@/components/ui/button'
 
 export function CheckoutForm() {
-  const { currentStep, setCurrentStep, formData } = useCheckout()
+  const { currentStep, setCurrentStep } = useCheckout()
 
   const steps = [
     { id: 1, name: 'Contact', component: <ContactInfoForm /> },

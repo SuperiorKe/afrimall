@@ -111,7 +111,7 @@ export function ShoppingCartComponent() {
       setCart(updatedCart)
 
       // Update cart on server
-      let sessionId = localStorage.getItem('afrimall_session_id')
+      const sessionId = localStorage.getItem('afrimall_session_id')
       const customerId = null // TODO: Get from auth context
 
       const response = await fetch('/api/cart', {

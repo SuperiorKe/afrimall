@@ -1,9 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
 import {
   createSuccessResponse,
-  createErrorResponse,
   withErrorHandling,
   ApiError,
 } from '@/utilities/apiResponse'
@@ -47,7 +46,7 @@ export const GET = withErrorHandling(
           and: [
             { status: { equals: 'active' } },
             { id: { not_equals: id } },
-            { categories: { in: product.categories?.map((cat: any) => cat.id) || [] } },
+            { categories: { in: product.categories?.map((cat: { id: string }) => cat.id) || [] } },
           ],
         },
         limit: 4,

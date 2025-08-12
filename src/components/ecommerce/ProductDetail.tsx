@@ -31,13 +31,15 @@ interface Product {
     [k: string]: unknown
   } | null
   images: {
-    image: number | {
-      id: number
-      url?: string | null
-      alt?: string | null
-      width?: number | null
-      height?: number | null
-    }
+    image:
+      | number
+      | {
+          id: number
+          url?: string | null
+          alt?: string | null
+          width?: number | null
+          height?: number | null
+        }
     alt: string
     id?: string | null
   }[]
@@ -50,15 +52,22 @@ interface Product {
     allowBackorder?: boolean | null
     lowStockThreshold?: number | null
   } | null
-  categories?: (number | {
-    id: number
-    title: string
-    slug?: string | null
-  })[] | null
-  tags?: {
-    tag: string
-    id?: string | null
-  }[] | null
+  categories?:
+    | (
+        | number
+        | {
+            id: number
+            title: string
+            slug?: string | null
+          }
+      )[]
+    | null
+  tags?:
+    | {
+        tag: string
+        id?: string | null
+      }[]
+    | null
   status: 'draft' | 'active' | 'archived'
   featured?: boolean | null
   weight?: number | null

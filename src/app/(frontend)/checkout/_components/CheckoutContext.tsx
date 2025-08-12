@@ -2,7 +2,6 @@
 
 import { createContext, useContext, useState } from 'react'
 import { z } from 'zod'
-import { PaymentIntent } from '@stripe/stripe-js'
 
 export const contactInfoSchema = z.object({
   email: z.string().email('Please enter a valid email'),
@@ -22,7 +21,7 @@ export const addressSchema = z.object({
 })
 
 // Simplified payment method schema for Stripe integration
-const paymentMethodSchema = z.object({
+const _paymentMethodSchema = z.object({
   saveCard: z.boolean().optional(),
 })
 
@@ -30,7 +29,7 @@ type CheckoutData = {
   contactInfo: z.infer<typeof contactInfoSchema>
   shippingAddress: z.infer<typeof addressSchema>
   billingAddress: z.infer<typeof addressSchema>
-  paymentMethod: z.infer<typeof paymentMethodSchema>
+  paymentMethod: z.infer<typeof _paymentMethodSchema>
   shippingMethod: string
   sameAsBilling: boolean
 }
@@ -139,10 +138,11 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       }))
 
       return true
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred'
       setStripePayment((prev) => ({
         ...prev,
-        error: error.message,
+        error: errorMessage,
         isProcessing: false,
       }))
       return false

@@ -28,7 +28,7 @@ export function CartIcon({ className }: CartIconProps) {
   const loadCartCount = async () => {
     try {
       // Get session ID for guest users
-      let sessionId = localStorage.getItem('afrimall_session_id')
+      const sessionId = localStorage.getItem('afrimall_session_id')
       if (!sessionId) return
 
       // TODO: Check if user is logged in and use customer ID instead

@@ -82,7 +82,7 @@ export async function Footer() {
             <div className="flex items-center gap-4">
               <ThemeSelector />
               <p className="text-gray-400 text-sm">
-                © 2024 Afrimall. Celebrating African Heritage.
+                © 2025 Afrimall. Celebrating African Heritage.
               </p>
             </div>
             <div className="flex gap-6 text-sm text-gray-400">
@@ -93,6 +93,18 @@ export async function Footer() {
                 Terms of Service
               </Link>
             </div>
+          </div>
+        </div>
+
+        {/* Built by Superior Signature */}
+        <div className="border-t border-afrimall-gold/20 pt-6 mt-6">
+          <div className="text-center">
+            <p className="text-gray-500 text-sm">
+              Built with ❤️ by{' '}
+              <span className="text-afrimall-gold font-semibold hover:text-afrimall-orange transition-colors cursor-pointer">
+                Superior
+              </span>
+            </p>
           </div>
         </div>
       </div>

@@ -1,8 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { stripe, formatAmountForStripe, STRIPE_CONFIG } from '@/utilities/stripe'
 import {
   createSuccessResponse,
-  createErrorResponse,
   withErrorHandling,
   ApiError,
 } from '@/utilities/apiResponse'

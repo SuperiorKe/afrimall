@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useCheckout } from '../CheckoutContext'
 import { Button } from '@/components/ui/button'
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js'
+import Image from 'next/image'
 
 export function OrderReview() {
   const router = useRouter()
@@ -122,8 +123,10 @@ export function OrderReview() {
           router.push(`/order-confirmation/${order.id}`)
         }, 2000)
       }
-    } catch (error: any) {
-      setPaymentError(error.message || 'An unexpected error occurred. Please try again.')
+    } catch (error: unknown) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+      setPaymentError(errorMessage)
       setIsProcessing(false)
     }
   }
@@ -209,7 +212,13 @@ export function OrderReview() {
           {cartItems.map((item) => (
             <div key={item.id} className="flex items-center justify-between">
               <div className="flex items-center">
-                <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  width={64}
+                  height={64}
+                  className="w-16 h-16 object-cover rounded"
+                />
                 <div className="ml-4">
                   <p className="font-medium">{item.name}</p>
                   <p className="text-sm text-gray-500">Qty: {item.quantity}</p>

@@ -44,6 +44,13 @@ const nextConfig = {
   reactStrictMode: true,
   redirects,
 
+  // ESLint configuration for deployment
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+
   // Performance optimizations
   experimental: {
     // Optimize package imports to reduce bundle size

@@ -4,16 +4,14 @@ import configPromise from '@payload-config'
 import {
   createSuccessResponse,
   createErrorResponse,
-  badRequestResponse,
   withErrorHandling,
   ApiError,
 } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
-import { Category } from '@/types/ecommerce'
 
 // Helper function to normalize field names - simplified and more reliable
-function normalizeFieldNames(data: Record<string, any>): Record<string, any> {
-  const normalized: Record<string, any> = {}
+function normalizeFieldNames(data: Record<string, unknown>): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {}
 
   // Handle common field variations
   const fieldMappings: Record<string, string> = {
@@ -47,7 +45,7 @@ function normalizeFieldNames(data: Record<string, any>): Record<string, any> {
 }
 
 // Helper function to validate category data
-function validateCategoryData(data: any): { isValid: boolean; errors: string[] } {
+function validateCategoryData(data: Record<string, unknown>): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
   // Check for title in both cases
@@ -134,7 +132,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const featured = searchParams.get('featured')
 
     // Build query
-    const query: any = {
+    const query: Record<string, unknown> = {
       status: { equals: 'active' },
     }
 
@@ -178,7 +176,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     // Check content type and parse accordingly
     const contentType = request.headers.get('content-type') || ''
-    let body: any
+    let body: Record<string, unknown>
 
     if (contentType.includes('application/json')) {
       body = await request.json()
@@ -322,7 +320,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         normalizedData,
         bodyKeys: Object.keys(body),
         normalizedKeys: Object.keys(normalizedData),
-      } as any)
+      } as Record<string, unknown>)
       throw new ApiError(
         'Title field is required but missing after processing',
         422,
@@ -333,7 +331,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     // Create the category
     const result = await payload.create({
       collection: 'categories',
-      data: normalizedData as any, // Type assertion needed due to dynamic field processing
+      data: normalizedData as Record<string, unknown>, // Type assertion needed due to dynamic field processing
     })
 
     logger.info('Category created successfully', 'API:categories', {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -26,11 +26,7 @@ function StripePaymentForm() {
   const [isCardComplete, setIsCardComplete] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
 
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<FormData>({
+  const { register, handleSubmit } = useForm<FormData>({
     resolver: zodResolver(paymentMethodSchema),
     defaultValues: formData.paymentMethod,
   })
@@ -52,7 +48,7 @@ function StripePaymentForm() {
     hidePostalCode: true, // We collect this in billing address
   }
 
-  const handleCardChange = (event: any) => {
+  const handleCardChange = (event: { complete: boolean; error?: { message: string } }) => {
     setIsCardComplete(event.complete)
     setCardError(event.error ? event.error.message : null)
   }

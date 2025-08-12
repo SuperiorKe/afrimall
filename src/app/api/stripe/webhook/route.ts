@@ -1,13 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { stripe } from '@/utilities/stripe'
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
-import {
-  createSuccessResponse,
-  createErrorResponse,
-  withErrorHandling,
-  ApiError,
-} from '@/utilities/apiResponse'
+import { withErrorHandling, ApiError } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
@@ -29,7 +24,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
     // Verify webhook signature
     event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET)
-  } catch (err: any) {
+  } catch (err: unknown) {
     logger.error('Webhook signature verification failed', 'API:stripe/webhook', err as Error)
     throw new ApiError('Invalid signature', 400, 'INVALID_SIGNATURE')
   }

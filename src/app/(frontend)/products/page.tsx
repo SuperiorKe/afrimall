@@ -4,7 +4,7 @@ import configPromise from '@payload-config'
 import { ProductGrid } from '@/components/ecommerce/ProductGrid'
 import { CategoryFilter } from '@/components/ecommerce/CategoryFilter'
 import { ProductFilters } from '@/components/ecommerce/ProductFilters'
-import { generateMeta } from '@/utilities/generateMeta'
+
 import type { Metadata } from 'next'
 import { Logo } from '@/components/Logo/Logo'
 
@@ -37,7 +37,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const payload = await getPayload({ config: configPromise })
 
   // Build where clause
-  const where: any = {
+  const where: Record<string, unknown> = {
     status: { equals: 'active' },
   }
 
@@ -54,21 +54,22 @@ export default async function ProductsPage({ searchParams }: Props) {
   }
 
   if (minPrice || maxPrice) {
-    where.price = {}
-    if (minPrice) where.price.greater_than_equal = parseFloat(minPrice)
-    if (maxPrice) where.price.less_than_equal = parseFloat(maxPrice)
+    ;(where as any).price = {}
+    if (minPrice) (where as any).price.greater_than_equal = parseFloat(minPrice)
+    if (maxPrice) (where as any).price.less_than_equal = parseFloat(maxPrice)
   }
 
   // Fetch products
   const products = await payload.find({
     collection: 'products',
-    where,
+    where: where as any,
     limit: 12,
     page: parseInt(page),
     sort: `${order === 'desc' ? '-' : ''}${sort}`,
     populate: {
-      categories: true,
-      images: true,
+      categories: {
+        image: true,
+      },
     },
   })
 
@@ -78,7 +79,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     where: { status: { equals: 'active' } },
     sort: 'sortOrder',
     populate: {
-      image: true,
+      // image: true,
     },
   })
 
@@ -94,7 +95,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         {category && (
           <p className="text-gray-600 dark:text-gray-300">
             Showing products in category:{' '}
-            {categories.docs.find((cat) => cat.id === category)?.title}
+            {categories.docs.find((cat) => cat.id.toString() === category)?.title}
           </p>
         )}
       </div>
@@ -103,7 +104,27 @@ export default async function ProductsPage({ searchParams }: Props) {
         {/* Filters Sidebar */}
         <div className="lg:col-span-1">
           <div className="space-y-6">
-            <CategoryFilter categories={categories.docs} selectedCategory={category} />
+            <CategoryFilter
+              categories={categories.docs.map((cat) => ({
+                ...cat,
+                id: cat.id.toString(),
+                slug: cat.slug || '',
+                title: cat.title || '',
+                image:
+                  cat.image && typeof cat.image === 'object' && 'url' in cat.image
+                    ? {
+                        url: cat.image.url || '',
+                        alt: cat.image.alt || cat.title || '',
+                        filename: cat.image.filename || '',
+                      }
+                    : undefined,
+                description: cat.description || null,
+                parent: cat.parent || null,
+                status: cat.status || 'draft',
+                sortOrder: cat.sortOrder || 0,
+              }))}
+              selectedCategory={category}
+            />
             <ProductFilters minPrice={minPrice} maxPrice={maxPrice} sort={sort} order={order} />
           </div>
         </div>
@@ -116,7 +137,17 @@ export default async function ProductsPage({ searchParams }: Props) {
             </p>
           </div>
 
-          <ProductGrid products={products.docs} pagination={products} />
+          <ProductGrid
+            products={products.docs}
+            pagination={{
+              page: products.page || 1,
+              totalPages: products.totalPages || 1,
+              totalDocs: products.totalDocs || 0,
+              hasNextPage: products.hasNextPage || false,
+              limit: products.limit || 10,
+              hasPrevPage: products.hasPrevPage || false,
+            }}
+          />
         </div>
       </div>
     </div>

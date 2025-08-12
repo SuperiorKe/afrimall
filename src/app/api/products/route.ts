@@ -1,18 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
-import {
-  createSuccessResponse,
-  createErrorResponse,
-  withErrorHandling,
-  ApiError,
-} from '@/utilities/apiResponse'
+import { createSuccessResponse, withErrorHandling, ApiError } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
-import { Product } from '@/types/ecommerce'
 
 // Helper function to normalize field names - simplified and more reliable
-function normalizeFieldNames(data: Record<string, any>): Record<string, any> {
-  const normalized: Record<string, any> = {}
+function normalizeFieldNames(data: Record<string, unknown>): Record<string, unknown> {
+  const normalized: Record<string, unknown> = {}
 
   // Handle common field variations
   const fieldMappings: Record<string, string> = {
@@ -38,7 +32,8 @@ function normalizeFieldNames(data: Record<string, any>): Record<string, any> {
 
     if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof File)) {
       // Recursively normalize nested objects
-      normalized[normalizedKey] = normalizeFieldNames(value)
+      // Type guard: only recurse if value is a plain object (has string keys)
+      normalized[normalizedKey] = normalizeFieldNames(value as Record<string, unknown>)
     } else {
       normalized[normalizedKey] = value
     }
@@ -48,7 +43,10 @@ function normalizeFieldNames(data: Record<string, any>): Record<string, any> {
 }
 
 // Helper function to validate product data
-function validateProductData(data: any): { isValid: boolean; errors: string[] } {
+function validateProductData(data: Record<string, unknown>): {
+  isValid: boolean
+  errors: string[]
+} {
   const errors: string[] = []
 
   // Check for title - handle both cases
@@ -63,14 +61,14 @@ function validateProductData(data: any): { isValid: boolean; errors: string[] } 
   const description = data.description || data.Description
   if (description && typeof description !== 'string') {
     errors.push('Description must be a string')
-  } else if (description && description.length > 2000) {
+  } else if (description && typeof description === 'string' && description.length > 2000) {
     errors.push('Description must be less than 2000 characters')
   }
 
   // Check for price - handle both cases
   const price = data.price || data.Price
   if (price !== undefined && price !== null && price !== '') {
-    const numPrice = parseFloat(price)
+    const numPrice = parseFloat(String(price))
     if (isNaN(numPrice) || numPrice < 0) {
       errors.push('Price must be a valid positive number')
     }
@@ -78,7 +76,7 @@ function validateProductData(data: any): { isValid: boolean; errors: string[] } 
 
   // Check for status - handle both cases
   const status = data.status || data.Status
-  if (status && !['active', 'draft', 'archived'].includes(status)) {
+  if (status && typeof status === 'string' && !['active', 'draft', 'archived'].includes(status)) {
     errors.push('Status must be one of: active, draft, archived')
   }
 
@@ -95,7 +93,7 @@ function validateProductData(data: any): { isValid: boolean; errors: string[] } 
 }
 
 // Helper function to validate update data
-function validateUpdateData(data: any): { isValid: boolean; errors: string[] } {
+function validateUpdateData(data: Record<string, unknown>): { isValid: boolean; errors: string[] } {
   const errors: string[] = []
 
   // For updates, fields are optional but must be valid if provided
@@ -115,15 +113,16 @@ function validateUpdateData(data: any): { isValid: boolean; errors: string[] } {
     }
   }
 
-  if (data.price !== undefined) {
-    const numPrice = parseFloat(data.price)
+  if (data.price !== undefined && data.price !== null && data.price !== '') {
+    // Accept both string and number, but ensure it's a valid positive number
+    const numPrice = parseFloat(String(data.price))
     if (isNaN(numPrice) || numPrice < 0) {
       errors.push('Price must be a valid positive number')
     }
   }
-
-  if (data.status !== undefined) {
-    if (!['active', 'draft', 'archived'].includes(data.status)) {
+  // Validate status if provided (accept both string and null, but only allow valid statuses)
+  if (data.status !== undefined && data.status !== null && data.status !== '') {
+    if (typeof data.status !== 'string' || !['active', 'draft', 'archived'].includes(data.status)) {
       errors.push('Status must be one of: active, draft, archived')
     }
   }
@@ -217,7 +216,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       sort: sortString,
       populate: {
         categories: true as any,
-        images: true as any,
+        media: true as any,
       },
     })
 
