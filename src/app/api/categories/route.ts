@@ -8,6 +8,7 @@ import {
   ApiError,
 } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
+import type { Where } from 'payload'
 
 // Helper function to normalize field names - simplified and more reliable
 function normalizeFieldNames(data: Record<string, unknown>): Record<string, unknown> {
@@ -27,6 +28,8 @@ function normalizeFieldNames(data: Record<string, unknown>): Record<string, unkn
     featured: 'featured',
     SortOrder: 'sortOrder',
     sortOrder: 'sortOrder',
+    slug: 'slug',
+    Slug: 'slug',
   }
 
   // Process each field with proper mapping
@@ -35,7 +38,7 @@ function normalizeFieldNames(data: Record<string, unknown>): Record<string, unkn
 
     if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof File)) {
       // Recursively normalize nested objects
-      normalized[normalizedKey] = normalizeFieldNames(value)
+      normalized[normalizedKey] = normalizeFieldNames(value as Record<string, unknown>)
     } else {
       normalized[normalizedKey] = value
     }
@@ -45,7 +48,10 @@ function normalizeFieldNames(data: Record<string, unknown>): Record<string, unkn
 }
 
 // Helper function to validate category data
-function validateCategoryData(data: Record<string, unknown>): { isValid: boolean; errors: string[] } {
+function validateCategoryData(data: Record<string, unknown>): {
+  isValid: boolean
+  errors: string[]
+} {
   const errors: string[] = []
 
   // Check for title in both cases
@@ -54,7 +60,7 @@ function validateCategoryData(data: Record<string, unknown>): { isValid: boolean
     errors.push('Title is required and must be a non-empty string')
   }
 
-  if (title && title.length > 100) {
+  if (title && typeof title === 'string' && title.length > 100) {
     errors.push('Title must be less than 100 characters')
   }
 
@@ -64,7 +70,7 @@ function validateCategoryData(data: Record<string, unknown>): { isValid: boolean
     errors.push('Description must be a string')
   }
 
-  if (description && description.length > 1000) {
+  if (description && typeof description === 'string' && description.length > 1000) {
     errors.push('Description must be less than 1000 characters')
   }
 
@@ -132,7 +138,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const featured = searchParams.get('featured')
 
     // Build query
-    const query: Record<string, unknown> = {
+    const query: Where = {
       status: { equals: 'active' },
     }
 
@@ -213,6 +219,30 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           }
         }
       }
+
+      // Handle Payload admin's special _payload field
+      if (body._payload && typeof body._payload === 'string') {
+        try {
+          const payloadData = JSON.parse(body._payload as string)
+          logger.debug('Parsed _payload data', 'API:categories', {
+            payloadData,
+            payloadDataKeys: Object.keys(payloadData),
+            titleInPayload: payloadData.title,
+          })
+          // Merge the parsed payload data with the existing body
+          body = { ...body, ...payloadData }
+          // Remove the _payload field as it's no longer needed
+          delete body._payload
+          logger.debug('Body after merging _payload', 'API:categories', {
+            finalBody: body,
+            finalBodyKeys: Object.keys(body),
+            titleInFinalBody: body.title,
+          })
+        } catch (parseError) {
+          logger.warn('Failed to parse _payload field', 'API:categories', parseError as Error)
+          // Continue with the original body if parsing fails
+        }
+      }
     } else {
       throw new ApiError('Unsupported content type', 400, 'INVALID_CONTENT_TYPE')
     }
@@ -228,39 +258,62 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     // Normalize field names to handle case sensitivity
     const normalizedData = normalizeFieldNames(body)
+    
+    // Filter out invalid fields that might cause validation issues
+    const validFields = ['title', 'description', 'status', 'parent', 'featured', 'sortOrder', 'slug', 'seo']
+    const filteredData: Record<string, unknown> = {}
+    
+    for (const [key, value] of Object.entries(normalizedData)) {
+      if (validFields.includes(key)) {
+        filteredData[key] = value
+      }
+    }
+    
+    logger.debug('Data after normalization and filtering', 'API:categories', {
+      normalizedData,
+      normalizedDataKeys: Object.keys(normalizedData),
+      titleAfterNormalization: normalizedData.title,
+      titleTypeAfterNormalization: typeof normalizedData.title,
+      filteredData,
+      filteredDataKeys: Object.keys(filteredData),
+    })
+    
+    // Use filtered data for further processing
+    const finalData = filteredData
 
     // Ensure critical fields are properly set for payload
-    if (body.Title && !normalizedData.title) {
-      normalizedData.title = body.Title
+    if (body.Title && !finalData.title) {
+      finalData.title = body.Title
     }
-    if (body.Description && !normalizedData.description) {
-      normalizedData.description = body.Description
+    if (body.Description && !finalData.description) {
+      finalData.description = body.Description
     }
-    if (body.Status && !normalizedData.status) {
-      normalizedData.status = body.Status
+    if (body.Status && !finalData.status) {
+      finalData.status = body.Status
     }
-    if (body.Parent && !normalizedData.parent) {
-      normalizedData.parent = body.Parent
+    if (body.Parent && !finalData.parent) {
+      finalData.parent = body.Parent
     }
-    if (body.Featured && !normalizedData.featured) {
-      normalizedData.featured = body.Featured
+    if (body.Featured && !finalData.featured) {
+      finalData.featured = body.Featured
     }
-    if (body.SortOrder && !normalizedData.sortorder) {
-      normalizedData.sortorder = body.SortOrder
+    if (body.SortOrder && !finalData.sortOrder) {
+      finalData.sortOrder = body.SortOrder
     }
 
     // Debug logging for parent field
     logger.debug('Processing category data', 'API:categories', {
       originalBody: body,
       normalizedData,
-      parentField: normalizedData.parent,
-      parentType: typeof normalizedData.parent,
-      titleField: normalizedData.title,
-      titleFieldType: typeof normalizedData.title,
+      finalData,
+      parentField: finalData.parent,
+      parentType: typeof finalData.parent,
+      titleField: finalData.title,
+      titleFieldType: typeof finalData.title,
     })
 
     // Validate the data
-    const validation = validateCategoryData(normalizedData)
+    const validation = validateCategoryData(finalData)
     if (!validation.isValid) {
       throw new ApiError(
         `Validation failed: ${validation.errors.join(', ')}`,
@@ -270,25 +323,25 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     }
 
     // Additional parent field validation
-    if (normalizedData.parent && normalizedData.parent !== null) {
+    if (finalData.parent && finalData.parent !== null && typeof finalData.parent === 'string') {
       try {
         // Verify parent category exists if a parent is specified
         const parentCategory = await payload.findByID({
           collection: 'categories',
-          id: normalizedData.parent,
+          id: finalData.parent,
           depth: 0,
         })
 
         if (!parentCategory) {
           throw new ApiError(
-            `Parent category with ID '${normalizedData.parent}' not found`,
+            `Parent category with ID '${finalData.parent}' not found`,
             422,
             'INVALID_PARENT',
           )
         }
 
         logger.debug('Parent category verified', 'API:categories', {
-          parentId: normalizedData.parent,
+          parentId: finalData.parent,
           parentTitle: parentCategory.title,
         })
       } catch (error) {
@@ -306,21 +359,16 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     // Log final data being sent to payload
     logger.debug('Final category data for creation', 'API:categories', {
-      finalData: normalizedData,
-      titleField: normalizedData.title,
-      titleFieldType: typeof normalizedData.title,
-      statusField: normalizedData.status,
-      parentField: normalizedData.parent,
+      finalData: finalData,
+      titleField: finalData.title,
+      titleFieldType: typeof finalData.title,
+      statusField: finalData.status,
+      parentField: finalData.parent,
     })
 
     // Final validation check before sending to payload
-    if (!normalizedData.title) {
-      logger.error('Title field missing after normalization', 'API:categories', {
-        originalBody: body,
-        normalizedData,
-        bodyKeys: Object.keys(body),
-        normalizedKeys: Object.keys(normalizedData),
-      } as Record<string, unknown>)
+    if (!finalData.title) {
+      logger.error('Title field missing after normalization', 'API:categories', new Error('Title field missing'))
       throw new ApiError(
         'Title field is required but missing after processing',
         422,
@@ -331,7 +379,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     // Create the category
     const result = await payload.create({
       collection: 'categories',
-      data: normalizedData as Record<string, unknown>, // Type assertion needed due to dynamic field processing
+      data: finalData as any, // Type assertion needed due to dynamic field processing
     })
 
     logger.info('Category created successfully', 'API:categories', {
