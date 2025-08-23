@@ -413,4 +413,4 @@ function validateProductData(data: Record<string, unknown>): {
   }
 }
 
-// Note: PATCH method moved to /api/products/[id]/route.ts for individual product updates
+// Note: PATCH method moved to /api/products/[slug]/route.ts for individual product updates
