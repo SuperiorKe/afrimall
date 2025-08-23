@@ -4,243 +4,238 @@ import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
 
-// Helper function to normalize field names - simplified and more reliable
-function normalizeFieldNames(data: Record<string, unknown>): Record<string, unknown> {
-  const normalized: Record<string, unknown> = {}
-
-  // Handle common field variations
-  const fieldMappings: Record<string, string> = {
-    Title: 'title',
-    title: 'title',
-    Description: 'description',
-    description: 'description',
-    Status: 'status',
-    status: 'status',
-    Price: 'price',
-    price: 'price',
-    Categories: 'categories',
-    categories: 'categories',
-    Featured: 'featured',
-    featured: 'featured',
-    SortOrder: 'sortOrder',
-    sortOrder: 'sortOrder',
-  }
-
-  // Process each field with proper mapping
-  for (const [key, value] of Object.entries(data)) {
-    const normalizedKey = fieldMappings[key] || key.toLowerCase()
-
-    if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof File)) {
-      // Recursively normalize nested objects
-      // Type guard: only recurse if value is a plain object (has string keys)
-      normalized[normalizedKey] = normalizeFieldNames(value as Record<string, unknown>)
-    } else {
-      normalized[normalizedKey] = value
-    }
-  }
-
-  return normalized
-}
-
-// Helper function to validate product data
-function validateProductData(data: Record<string, unknown>): {
-  isValid: boolean
-  errors: string[]
-} {
-  const errors: string[] = []
-
-  // Check for title - handle both cases
-  const title = data.title || data.Title
-  if (!title || typeof title !== 'string' || title.trim().length === 0) {
-    errors.push('Title is required and must be a non-empty string')
-  } else if (title.length > 200) {
-    errors.push('Title must be less than 200 characters')
-  }
-
-  // Check for description - handle both cases
-  const description = data.description || data.Description
-  if (description && typeof description !== 'string') {
-    errors.push('Description must be a string')
-  } else if (description && typeof description === 'string' && description.length > 2000) {
-    errors.push('Description must be less than 2000 characters')
-  }
-
-  // Check for price - handle both cases
-  const price = data.price || data.Price
-  if (price !== undefined && price !== null && price !== '') {
-    const numPrice = parseFloat(String(price))
-    if (isNaN(numPrice) || numPrice < 0) {
-      errors.push('Price must be a valid positive number')
-    }
-  }
-
-  // Check for status - handle both cases
-  const status = data.status || data.Status
-  if (status && typeof status === 'string' && !['active', 'draft', 'archived'].includes(status)) {
-    errors.push('Status must be one of: active, draft, archived')
-  }
-
-  // Check for SKU if provided
-  const sku = data.sku || data.SKU
-  if (sku && typeof sku !== 'string') {
-    errors.push('SKU must be a string')
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
-// Helper function to validate update data
-function validateUpdateData(data: Record<string, unknown>): { isValid: boolean; errors: string[] } {
-  const errors: string[] = []
-
-  // For updates, fields are optional but must be valid if provided
-  if (data.title !== undefined) {
-    if (typeof data.title !== 'string' || data.title.trim().length === 0) {
-      errors.push('Title must be a non-empty string')
-    } else if (data.title.length > 200) {
-      errors.push('Title must be less than 200 characters')
-    }
-  }
-
-  if (data.description !== undefined) {
-    if (typeof data.description !== 'string') {
-      errors.push('Description must be a string')
-    } else if (data.description.length > 2000) {
-      errors.push('Description must be less than 2000 characters')
-    }
-  }
-
-  if (data.price !== undefined && data.price !== null && data.price !== '') {
-    // Accept both string and number, but ensure it's a valid positive number
-    const numPrice = parseFloat(String(data.price))
-    if (isNaN(numPrice) || numPrice < 0) {
-      errors.push('Price must be a valid positive number')
-    }
-  }
-  // Validate status if provided (accept both string and null, but only allow valid statuses)
-  if (data.status !== undefined && data.status !== null && data.status !== '') {
-    if (typeof data.status !== 'string' || !['active', 'draft', 'archived'].includes(data.status)) {
-      errors.push('Status must be one of: active, draft, archived')
-    }
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors,
-  }
-}
-
+// Enhanced search and filtering for products
 export const GET = withErrorHandling(async (request: NextRequest) => {
   try {
     const payload = await getPayloadHMR({ config: configPromise })
     const searchParams = request.nextUrl.searchParams
 
-    // Parse query parameters with validation
-    const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '12')))
-    const category = searchParams.get('category')
-    const search = searchParams.get('search')
-    const sort = searchParams.get('sort') || 'createdAt'
-    const order = searchParams.get('order') || 'desc'
-    const featured = searchParams.get('featured')
+    // Extract query parameters
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '12')
+    const search = searchParams.get('search') || ''
+    const category = searchParams.get('category') || ''
+    const sortBy = searchParams.get('sortBy') || 'createdAt'
+    const sortOrder = searchParams.get('sortOrder') || 'desc'
     const minPrice = searchParams.get('minPrice')
     const maxPrice = searchParams.get('maxPrice')
-    const status = searchParams.get('status')
-
-    // Validate sort field
-    const allowedSortFields = ['title', 'price', 'createdAt', 'updatedAt', 'featured', 'sortOrder']
-    const validSort = allowedSortFields.includes(sort) ? sort : 'createdAt'
-
-    // Validate order
-    const validOrder = ['asc', 'desc'].includes(order) ? order : 'desc'
+    const featured = searchParams.get('featured')
+    const status = searchParams.get('status') || 'active'
 
     // Build where clause
-    const where: any = {}
-
-    // Add status filter (default to active if not specified)
-    if (status) {
-      if (['active', 'draft', 'archived'].includes(status)) {
-        where.status = { equals: status }
-      }
-    } else {
-      where.status = { equals: 'active' }
+    const where: Record<string, any> = {
+      status: { equals: status },
     }
 
-    // Add category filter
+    // Search functionality
+    if (search) {
+      where.or = [
+        { title: { contains: search } },
+        { description: { contains: search } },
+        { sku: { contains: search } },
+        { 'tags.tag': { contains: search } },
+      ]
+    }
+
+    // Category filter
     if (category) {
       where.categories = { in: [category] }
     }
 
-    // Add search filter
-    if (search && search.trim().length > 0) {
-      where.or = [
-        { title: { contains: search.trim() } },
-        { description: { contains: search.trim() } },
-        { 'tags.tag': { contains: search.trim() } },
-      ]
+    // Price range filter
+    if (minPrice || maxPrice) {
+      where.price = {}
+      if (minPrice) {
+        where.price.greater_than_equal = parseFloat(minPrice)
+      }
+      if (maxPrice) {
+        where.price.less_than_equal = parseFloat(maxPrice)
+      }
     }
 
-    // Add featured filter
+    // Featured filter
     if (featured === 'true') {
       where.featured = { equals: true }
     }
 
-    // Add price range filter
-    if (minPrice || maxPrice) {
-      where.price = {}
-      if (minPrice) {
-        const min = parseFloat(minPrice)
-        if (!isNaN(min) && min >= 0) {
-          where.price.greater_than_equal = min
-        }
-      }
-      if (maxPrice) {
-        const max = parseFloat(maxPrice)
-        if (!isNaN(max) && max >= 0) {
-          where.price.less_than_equal = max
-        }
-      }
-    }
+    // Build sort string
+    const sortString = `${sortOrder === 'desc' ? '-' : ''}${sortBy}`
 
-    // Build sort object
-    const sortString = `${order === 'desc' ? '-' : ''}${validSort}`
-
+    // Fetch products with enhanced population
     const result = await payload.find({
       collection: 'products',
-      where,
+      where: where as any,
       limit,
       page,
       sort: sortString,
       populate: {
-        categories: true as any,
-        media: true as any,
-      },
+        categories: true,
+        images: true,
+        tags: true,
+      } as any,
     })
+
+    // Transform products for frontend consumption
+    const transformedProducts = result.docs.map((product: any) => ({
+      id: product.id,
+      title: product.title,
+      description: product.description,
+      price: product.price,
+      compareAtPrice: product.compareAtPrice,
+      sku: product.sku,
+      status: product.status,
+      featured: product.featured,
+      slug: product.slug,
+      images:
+        product.images?.map((img: any) => ({
+          id: img.id,
+          url: img.image?.filename ? `/api/media/file/${img.image.filename}` : null,
+          alt: img.alt || img.image?.alt || '',
+          width: img.image?.width || 800,
+          height: img.image?.height || 600,
+        })) || [],
+      categories:
+        product.categories?.map((cat: any) => ({
+          id: cat.id,
+          title: cat.title,
+          slug: cat.slug,
+          image: cat.image
+            ? {
+                url: `/api/media/file/${cat.image.filename}`,
+                alt: cat.image.alt || '',
+              }
+            : null,
+        })) || [],
+      tags:
+        product.tags?.map((tag: any) => ({
+          id: tag.id,
+          tag: tag.tag,
+        })) || [],
+      inventory: {
+        trackQuantity: product.inventory?.trackQuantity || false,
+        quantity: product.inventory?.quantity || 0,
+        allowBackorder: product.inventory?.allowBackorder || false,
+        lowStockThreshold: product.inventory?.lowStockThreshold || 5,
+      },
+      weight: product.weight,
+      dimensions: product.dimensions,
+      createdAt: product.createdAt,
+      updatedAt: product.updatedAt,
+    }))
+
+    // Enhanced pagination info
+    const pagination = {
+      totalDocs: result.totalDocs,
+      totalPages: result.totalPages,
+      page: result.page,
+      limit: result.limit,
+      hasNextPage: result.hasNextPage,
+      hasPrevPage: result.hasPrevPage,
+      nextPage: result.nextPage,
+      prevPage: result.prevPage,
+    }
 
     logger.info('Products fetched successfully', 'API:products', {
+      totalProducts: result.totalDocs,
       page,
       limit,
-      total: result.totalDocs,
-      filters: { category, search, featured, minPrice, maxPrice, status },
+      search,
+      category,
+      filters: { minPrice, maxPrice, featured, status },
     })
 
-    return createSuccessResponse(result.docs, 200, 'Products fetched successfully')
+    return createSuccessResponse(
+      {
+        products: transformedProducts,
+        pagination,
+        filters: {
+          applied: {
+            search,
+            category,
+            minPrice,
+            maxPrice,
+            featured: featured === 'true',
+            status,
+          },
+          available: {
+            categories: await getAvailableCategories(payload),
+            priceRange: await getPriceRange(payload),
+          },
+        },
+      },
+      200,
+      'Products fetched successfully',
+    )
   } catch (error) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+
     logger.apiError('Error fetching products', '/api/products', error as Error)
     throw new ApiError('Failed to fetch products', 500, 'FETCH_ERROR')
   }
 })
 
+// Helper function to get available categories
+async function getAvailableCategories(payload: any) {
+  try {
+    const categories = await payload.find({
+      collection: 'categories',
+      where: { status: { equals: 'active' } },
+      sort: 'sortOrder',
+      limit: 100,
+      fields: ['id', 'title', 'slug', 'productCount'],
+    })
+
+    return categories.docs.map((cat: any) => ({
+      id: cat.id,
+      title: cat.title,
+      slug: cat.slug,
+      productCount: cat.productCount || 0,
+    }))
+  } catch (error) {
+    logger.warn('Failed to fetch categories for filters', 'API:products', error as Error)
+    return []
+  }
+}
+
+// Helper function to get price range
+async function getPriceRange(payload: any) {
+  try {
+    const minResult = await payload.find({
+      collection: 'products',
+      where: { status: { equals: 'active' } },
+      sort: 'price',
+      limit: 1,
+      fields: ['price'],
+    })
+
+    const maxResult = await payload.find({
+      collection: 'products',
+      where: { status: { equals: 'active' } },
+      sort: '-price',
+      limit: 1,
+      fields: ['price'],
+    })
+
+    return {
+      min: minResult.docs[0]?.price || 0,
+      max: maxResult.docs[0]?.price || 1000,
+    }
+  } catch (error) {
+    logger.warn('Failed to fetch price range', 'API:products', error as Error)
+    return { min: 0, max: 1000 }
+  }
+}
+
+// POST method for creating products (admin only)
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
     const payload = await getPayloadHMR({ config: configPromise })
 
     // Check content type and parse accordingly
     const contentType = request.headers.get('content-type') || ''
-    let body: any
+    let body: Record<string, unknown>
 
     if (contentType.includes('application/json')) {
       body = await request.json()
@@ -261,59 +256,65 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           const stringValue = value as string
 
           // Handle special fields
-          if (key === 'categories') {
-            // Categories field can be a comma-separated string or array
-            if (stringValue.includes(',')) {
-              body[key] = stringValue.split(',').map((id) => id.trim())
-            } else {
-              body[key] = stringValue ? [stringValue] : []
-            }
-          } else if (key === 'featured') {
-            // Convert boolean field
-            body[key] = stringValue === 'true' || stringValue === '1'
-          } else if (key === 'sortOrder') {
-            // Convert number field
-            const numValue = parseInt(stringValue)
-            body[key] = isNaN(numValue) ? 0 : numValue
-          } else if (key === 'price') {
-            // Convert price to number
+          if (key === 'price' || key === 'compareAtPrice') {
+            // Convert price fields to numbers
             const numValue = parseFloat(stringValue)
             body[key] = isNaN(numValue) ? 0 : numValue
-          } else if (key.startsWith('images[')) {
-            // Handle images array field
-            const match = key.match(/images\[(\d+)\]\[(\w+)\]/)
-            if (match) {
-              const [, index, field] = match
-              const numIndex = parseInt(index)
-              if (!body.images) {
-                body.images = []
-              }
-              if (!body.images[numIndex]) {
-                body.images[numIndex] = {}
-              }
-              body.images[numIndex][field] = stringValue
-            }
+          } else if (key === 'featured' || key === 'trackQuantity' || key === 'allowBackorder') {
+            // Convert boolean fields
+            body[key] = stringValue === 'true' || stringValue === '1'
+          } else if (key === 'quantity' || key === 'lowStockThreshold') {
+            // Convert number fields
+            const numValue = parseInt(stringValue)
+            body[key] = isNaN(numValue) ? 0 : numValue
           } else {
             body[key] = stringValue
           }
+        }
+      }
+
+      // Handle Payload admin's special _payload field
+      if (body._payload && typeof body._payload === 'string') {
+        try {
+          const payloadData = JSON.parse(body._payload as string)
+          logger.debug('Parsed _payload data for product', 'API:products', {
+            payloadData,
+            payloadDataKeys: Object.keys(payloadData),
+            titleInPayload: payloadData.title,
+          })
+          // Merge the parsed payload data with the existing body
+          body = { ...body, ...payloadData }
+          // Remove the _payload field as it's no longer needed
+          delete body._payload
+          logger.debug('Body after merging _payload for product', 'API:products', {
+            finalBody: body,
+            finalBodyKeys: Object.keys(body),
+            titleInFinalBody: body.title,
+          })
+        } catch (parseError) {
+          logger.warn(
+            'Failed to parse _payload field for product',
+            'API:products',
+            parseError as Error,
+          )
+          // Continue with the original body if parsing fails
         }
       }
     } else {
       throw new ApiError('Unsupported content type', 400, 'INVALID_CONTENT_TYPE')
     }
 
-    // Log the raw body for debugging
-    logger.debug('Raw request body received', 'API:products', {
+    // Log the processed body for debugging
+    logger.debug('Processed request body for product creation', 'API:products', {
       contentType,
+      processedBody: body,
       bodyKeys: Object.keys(body),
-      hasTitle: !!(body.title || body.Title),
+      titleField: body.title,
+      titleFieldType: typeof body.title,
     })
 
-    // Normalize field names to handle case sensitivity
-    const normalizedData = normalizeFieldNames(body)
-
-    // Validate the data
-    const validation = validateProductData(normalizedData)
+    // Validate product data
+    const validation = validateProductData(body)
     if (!validation.isValid) {
       throw new ApiError(
         `Validation failed: ${validation.errors.join(', ')}`,
@@ -322,44 +323,18 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       )
     }
 
-    // Log final data being sent to payload
-    logger.debug('Final product data for creation', 'API:products', {
-      titleField: normalizedData.title,
-      statusField: normalizedData.status,
-      priceField: normalizedData.price,
+    // Create the product
+    const result = await payload.create({
+      collection: 'products',
+      data: body as any,
     })
 
-    // Create the product
-    try {
-      const result = await payload.create({
-        collection: 'products',
-        data: normalizedData as any, // Type assertion needed due to dynamic field processing
-      })
+    logger.info('Product created successfully', 'API:products', {
+      productId: result.id,
+      title: result.title,
+    })
 
-      logger.info('Product created successfully', 'API:products', {
-        productId: result.id,
-        title: result.title,
-      })
-
-      return createSuccessResponse(result, 201, 'Product created successfully')
-    } catch (createError) {
-      logger.error('Payload create error details', 'API:products', {
-        errorMessage: createError instanceof Error ? createError.message : 'Unknown error',
-        errorStack: createError instanceof Error ? createError.stack : undefined,
-        normalizedData,
-        validationErrors: (createError as any)?.data?.errors || 'No validation errors',
-      } as any)
-
-      // Re-throw with more context
-      if (createError instanceof Error) {
-        throw new ApiError(
-          `Product creation failed: ${createError.message}`,
-          422,
-          'PAYLOAD_CREATE_ERROR',
-        )
-      }
-      throw new ApiError('Product creation failed with unknown error', 500, 'UNKNOWN_CREATE_ERROR')
-    }
+    return createSuccessResponse(result, 201, 'Product created successfully')
   } catch (error) {
     if (error instanceof ApiError) {
       throw error
@@ -370,203 +345,72 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   }
 })
 
-export const PUT = withErrorHandling(async (request: NextRequest) => {
-  try {
-    const payload = await getPayloadHMR({ config: configPromise })
-    const searchParams = request.nextUrl.searchParams
-    const productId = searchParams.get('id')
+// Helper function to validate product data
+function validateProductData(data: Record<string, unknown>): {
+  isValid: boolean
+  errors: string[]
+} {
+  const errors: string[] = []
 
-    if (!productId) {
-      throw new ApiError('Product ID is required', 400, 'MISSING_ID')
+  // Check for title
+  const title = data.title
+  if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    errors.push('Title is required and must be a non-empty string')
+  } else if (title.length > 200) {
+    errors.push('Title must be less than 200 characters')
+  }
+
+  // Check for description
+  const description = data.description
+  if (!description || typeof description !== 'string' || description.trim().length === 0) {
+    errors.push('Description is required and must be a non-empty string')
+  } else if (description.length > 2000) {
+    errors.push('Description must be less than 2000 characters')
+  }
+
+  // Check for price
+  const price = data.price
+  if (price !== undefined && price !== null && price !== '') {
+    const numPrice = parseFloat(String(price))
+    if (isNaN(numPrice) || numPrice < 0) {
+      errors.push('Price must be a valid positive number')
     }
+  }
 
-    // Check content type and parse accordingly
-    const contentType = request.headers.get('content-type') || ''
-    let body: any
+  // Check for status
+  const status = data.status
+  if (status && typeof status === 'string' && !['active', 'draft', 'archived'].includes(status)) {
+    errors.push('Status must be one of: active, draft, archived')
+  }
 
-    if (contentType.includes('application/json')) {
-      body = await request.json()
-    } else if (
-      contentType.includes('multipart/form-data') ||
-      contentType.includes('application/x-www-form-urlencoded')
-    ) {
-      const formData = await request.formData()
-      body = {}
+  // Check for SKU if provided
+  const sku = data.sku
+  if (sku && typeof sku !== 'string') {
+    errors.push('SKU must be a string')
+  }
 
-      for (const [key, value] of formData.entries()) {
-        if (value instanceof File) {
-          body[key] = value
-        } else {
-          const stringValue = value as string
-
-          // Handle special fields similar to POST
-          if (key === 'categories') {
-            if (stringValue.includes(',')) {
-              body[key] = stringValue.split(',').map((id) => id.trim())
-            } else {
-              body[key] = stringValue ? [stringValue] : []
-            }
-          } else if (key === 'featured') {
-            body[key] = stringValue === 'true' || stringValue === '1'
-          } else if (key === 'sortOrder') {
-            const numValue = parseInt(stringValue)
-            body[key] = isNaN(numValue) ? 0 : numValue
-          } else if (key === 'price') {
-            const numValue = parseFloat(stringValue)
-            body[key] = isNaN(numValue) ? 0 : numValue
-          } else if (key.startsWith('images[')) {
-            const match = key.match(/images\[(\d+)\]\[(\w+)\]/)
-            if (match) {
-              const [, index, field] = match
-              const numIndex = parseInt(index)
-              if (!body.images) {
-                body.images = []
-              }
-              if (!body.images[numIndex]) {
-                body.images[numIndex] = {}
-              }
-              body.images[numIndex][field] = stringValue
-            }
-          } else {
-            body[key] = stringValue
-          }
+  // Validate images (required field)
+  const images = data.images
+  if (!images || !Array.isArray(images) || images.length === 0) {
+    errors.push('At least one image is required')
+  } else {
+    for (let i = 0; i < images.length; i++) {
+      const image = images[i]
+      if (image && typeof image === 'object') {
+        if (!image.image || (typeof image.image === 'string' && image.image.trim() === '')) {
+          errors.push(`Images ${i + 1} > Image is required`)
+        }
+        if (!image.alt || (typeof image.alt === 'string' && image.alt.trim() === '')) {
+          errors.push(`Images ${i + 1} > Alt is required`)
         }
       }
-    } else {
-      throw new ApiError('Unsupported content type', 400, 'INVALID_CONTENT_TYPE')
     }
-
-    // Normalize field names
-    const normalizedData = normalizeFieldNames(body)
-
-    // Validate update data
-    const validation = validateUpdateData(normalizedData)
-    if (!validation.isValid) {
-      throw new ApiError(
-        `Validation failed: ${validation.errors.join(', ')}`,
-        422,
-        'VALIDATION_ERROR',
-      )
-    }
-
-    // Check if product exists
-    try {
-      await payload.findByID({
-        collection: 'products',
-        id: productId,
-      })
-    } catch (error) {
-      throw new ApiError('Product not found', 404, 'PRODUCT_NOT_FOUND')
-    }
-
-    // Update the product
-    try {
-      const result = await payload.update({
-        collection: 'products',
-        id: productId,
-        data: normalizedData as any,
-      })
-
-      logger.info('Product updated successfully', 'API:products', {
-        productId: result.id,
-        title: result.title,
-        updatedFields: Object.keys(normalizedData),
-      })
-
-      return createSuccessResponse(result, 200, 'Product updated successfully')
-    } catch (updateError) {
-      logger.error(
-        'Payload update error details',
-        'API:products',
-        updateError instanceof Error ? updateError : undefined,
-        {
-          productId,
-          normalizedData,
-        },
-      )
-
-      if (updateError instanceof Error) {
-        throw new ApiError(
-          `Product update failed: ${updateError.message}`,
-          422,
-          'PAYLOAD_UPDATE_ERROR',
-        )
-      }
-      throw new ApiError('Product update failed with unknown error', 500, 'UNKNOWN_UPDATE_ERROR')
-    }
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error
-    }
-
-    logger.apiError('Error updating product', '/api/products', error as Error)
-    throw new ApiError('Failed to update product', 500, 'UPDATE_ERROR')
   }
-})
 
-export const DELETE = withErrorHandling(async (request: NextRequest) => {
-  try {
-    const payload = await getPayloadHMR({ config: configPromise })
-    const searchParams = request.nextUrl.searchParams
-    const productId = searchParams.get('id')
-
-    if (!productId) {
-      throw new ApiError('Product ID is required', 400, 'MISSING_ID')
-    }
-
-    // Check if product exists
-    let existingProduct
-    try {
-      existingProduct = await payload.findByID({
-        collection: 'products',
-        id: productId,
-      })
-    } catch (error) {
-      throw new ApiError('Product not found', 404, 'PRODUCT_NOT_FOUND')
-    }
-
-    // Delete the product
-    try {
-      await payload.delete({
-        collection: 'products',
-        id: productId,
-      })
-
-      logger.info('Product deleted successfully', 'API:products', {
-        productId,
-        title: existingProduct.title,
-      })
-
-      return createSuccessResponse(
-        { message: 'Product deleted successfully', productId },
-        200,
-        'Product deleted successfully',
-      )
-    } catch (deleteError) {
-      logger.error(
-        'Payload delete error details',
-        'API:products',
-        deleteError instanceof Error ? deleteError : undefined,
-        {
-          productId,
-        },
-      )
-
-      if (deleteError instanceof Error) {
-        throw new ApiError(
-          `Product deletion failed: ${deleteError.message}`,
-          422,
-          'PAYLOAD_DELETE_ERROR',
-        )
-      }
-      throw new ApiError('Product deletion failed with unknown error', 500, 'UNKNOWN_DELETE_ERROR')
-    }
-  } catch (error) {
-    if (error instanceof ApiError) {
-      throw error
-    }
-
-    logger.apiError('Error deleting product', '/api/products', error as Error)
-    throw new ApiError('Failed to delete product', 500, 'DELETE_ERROR')
+  return {
+    isValid: errors.length === 0,
+    errors,
   }
-})
+}
+
+// Note: PATCH method moved to /api/products/[id]/route.ts for individual product updates

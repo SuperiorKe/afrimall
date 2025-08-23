@@ -8,8 +8,7 @@ import {
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-import { anyone } from '../access/anyone'
-import { authenticated } from '../access/authenticated'
+// Remove unused imports since we're using local storage for now
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -17,16 +16,40 @@ const dirname = path.dirname(filename)
 export const Media: CollectionConfig = {
   slug: 'media',
   access: {
-    create: authenticated,
-    delete: authenticated,
-    read: anyone,
-    update: authenticated,
+    create: ({ req: { user } }) => {
+      // Only authenticated users with proper roles can create media
+      if (!user || user.collection !== 'users') return false
+
+      const userData = user as any
+      return ['admin', 'editor', 'super_admin'].includes(userData.role)
+    },
+    delete: ({ req: { user } }) => {
+      // Only authenticated users with proper roles can delete media
+      if (!user || user.collection !== 'users') return false
+
+      const userData = user as any
+      return ['admin', 'editor', 'super_admin'].includes(userData.role)
+    },
+    read: ({ req: { user } }) => {
+      // Allow public read access to media
+      return true
+    },
+    update: ({ req: { user } }) => {
+      // Only authenticated users with proper roles can update media
+      if (!user || user.collection !== 'users') return false
+
+      const userData = user as any
+      return ['admin', 'editor', 'super_admin'].includes(userData.role)
+    },
   },
   fields: [
     {
       name: 'alt',
       type: 'text',
-      //required: true,
+      required: false,
+      admin: {
+        description: 'Alternative text for accessibility (optional)',
+      },
     },
     {
       name: 'caption',
@@ -39,7 +62,7 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    // Upload to the public/media directory in Next.js making them publicly accessible even outside of Payload
+    // Use local storage for development
     staticDir: path.resolve(dirname, '../../public/media'),
     adminThumbnail: 'thumbnail',
     focalPoint: true,

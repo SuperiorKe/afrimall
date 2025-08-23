@@ -7,10 +7,31 @@ import { slugField } from '@/fields/slug'
 export const Products: CollectionConfig = {
   slug: 'products',
   access: {
-    create: authenticated,
-    delete: authenticated,
-    read: anyone,
-    update: authenticated,
+    create: ({ req: { user } }) => {
+      // Only authenticated users with proper roles can create products
+      if (!user || user.collection !== 'users') return false
+      
+      const userData = user as any
+      return ['admin', 'editor', 'super_admin'].includes(userData.role)
+    },
+    delete: ({ req: { user } }) => {
+      // Only authenticated users with proper roles can delete products
+      if (!user || user.collection !== 'users') return false
+      
+      const userData = user as any
+      return ['admin', 'editor', 'super_admin'].includes(userData.role)
+    },
+    read: ({ req: { user } }) => {
+      // Allow public read access to products
+      return true
+    },
+    update: ({ req: { user } }) => {
+      // Only authenticated users with proper roles can update products
+      if (!user || user.collection !== 'users') return false
+      
+      const userData = user as any
+      return ['admin', 'editor', 'super_admin'].includes(userData.role)
+    },
   },
   admin: {
     useAsTitle: 'title',
@@ -45,20 +66,20 @@ export const Products: CollectionConfig = {
     {
       name: 'images',
       type: 'array',
-      required: true,
-      minRows: 1,
+      required: false, // Make it optional for now
+      minRows: 0, // Allow empty array
       maxRows: 10,
       fields: [
         {
           name: 'image',
           type: 'upload',
           relationTo: 'media',
-          required: true,
+          required: false, // Make individual images optional
         },
         {
           name: 'alt',
           type: 'text',
-          required: true,
+          required: false, // Make alt text optional
         },
       ],
       admin: {

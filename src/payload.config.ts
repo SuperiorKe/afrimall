@@ -1,5 +1,6 @@
 // storage-adapter-import-placeholder
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
+import { postgresAdapter } from '@payloadcms/db-postgres'
 
 import sharp from 'sharp' // sharp-import
 import path from 'path'
@@ -15,6 +16,7 @@ import { Products } from './collections/Products'
 import { ProductVariants } from './collections/ProductVariants'
 import { ShoppingCart } from './collections/ShoppingCart'
 import { Users } from './collections/Users'
+import { PayloadPreferences } from './collections/PayloadPreferences'
 import { Footer } from './Footer/config'
 import { Header } from './Header/config'
 import { plugins } from './plugins'
@@ -23,6 +25,28 @@ import { getServerSideURL } from './utilities/getURL'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
+
+// Database configuration - supports both SQLite (dev) and PostgreSQL (prod)
+const getDatabaseAdapter = () => {
+  const databaseUrl = process.env.DATABASE_URL
+
+  if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
+    // PostgreSQL for production (Supabase)
+    return postgresAdapter({
+      pool: {
+        connectionString: databaseUrl,
+        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      },
+    })
+  }
+
+  // SQLite for development (default)
+  return sqliteAdapter({
+    client: {
+      url: databaseUrl || 'file:./afrimall.db',
+    },
+  })
+}
 
 export default buildConfig({
   admin: {
@@ -37,7 +61,6 @@ export default buildConfig({
     // Custom admin branding
     meta: {
       titleSuffix: ' - Afrimall Admin',
-      favicon: '/favicon.svg',
     },
     importMap: {
       baseDir: path.resolve(dirname),
@@ -68,11 +91,7 @@ export default buildConfig({
   },
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
-  db: sqliteAdapter({
-    client: {
-      url: process.env.DATABASE_URL || 'file:./afrimall.db',
-    },
-  }),
+  db: getDatabaseAdapter(),
   collections: [
     Media,
     Categories,
@@ -82,6 +101,7 @@ export default buildConfig({
     Orders,
     ShoppingCart,
     Users,
+    PayloadPreferences,
   ],
   cors: [getServerSideURL()].filter(Boolean),
   globals: [Header, Footer],
@@ -97,16 +117,21 @@ export default buildConfig({
   jobs: {
     access: {
       run: ({ req }: { req: PayloadRequest }): boolean => {
-        // Allow logged in users to execute this endpoint (default)
-        if (req.user) return true
-
-        // If there is no logged in user, then check
-        // for the Vercel Cron secret to be present as an
-        // Authorization header:
-        const authHeader = req.headers.get('authorization')
-        return authHeader === `Bearer ${process.env.CRON_SECRET}`
+        // Allow logged in users with admin or super_admin roles to execute this endpoint
+        if (!req.user || req.user.collection !== 'users') return false
+        const userData = req.user as any
+        return ['admin', 'super_admin'].includes(userData.role)
       },
     },
-    tasks: [],
+  },
+  // Enhanced security configuration
+  csrf: [
+    'http://localhost:3000',
+    'https://your-domain.com', // Replace with your actual domain
+  ],
+  // Rate limiting configuration
+  rateLimit: {
+    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
   },
 })

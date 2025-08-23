@@ -68,8 +68,16 @@ export default async function ProductsPage({ searchParams }: Props) {
     sort: `${order === 'desc' ? '-' : ''}${sort}`,
     populate: {
       categories: {
-        image: true,
+        populate: {
+          image: true,
+        },
       },
+      images: {
+        populate: {
+          image: true,
+        },
+      },
+      tags: true,
     },
   })
 
@@ -79,9 +87,69 @@ export default async function ProductsPage({ searchParams }: Props) {
     where: { status: { equals: 'active' } },
     sort: 'sortOrder',
     populate: {
-      // image: true,
+      image: true,
     },
   })
+
+  // Transform products for initial render
+  const transformedProducts = products.docs.map((product: any) => ({
+    id: product.id,
+    title: product.title,
+    description: product.description,
+    price: product.price,
+    compareAtPrice: product.compareAtPrice,
+    sku: product.sku,
+    status: product.status,
+    featured: product.featured,
+    slug: product.slug,
+    images:
+      product.images?.map((img: any) => ({
+        id: img.id,
+        url: img.image?.filename ? `/api/media/file/${img.image.filename}` : null,
+        alt: img.alt || img.image?.alt || '',
+        width: img.image?.width || 800,
+        height: img.image?.height || 600,
+      })) || [],
+    categories:
+      product.categories?.map((cat: any) => ({
+        id: cat.id,
+        title: cat.title,
+        slug: cat.slug,
+        image: cat.image
+          ? {
+              url: `/api/media/file/${cat.image.filename}`,
+              alt: cat.image.alt || '',
+            }
+          : null,
+      })) || [],
+    tags:
+      product.tags?.map((tag: any) => ({
+        id: tag.id,
+        tag: tag.tag,
+      })) || [],
+    inventory: {
+      trackQuantity: product.inventory?.trackQuantity || false,
+      quantity: product.inventory?.quantity || 0,
+      allowBackorder: product.inventory?.allowBackorder || false,
+      lowStockThreshold: product.inventory?.lowStockThreshold || 5,
+    },
+    weight: product.weight,
+    dimensions: product.dimensions,
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+  }))
+
+  // Transform pagination
+  const pagination = {
+    totalDocs: products.totalDocs,
+    totalPages: products.totalPages,
+    page: products.page,
+    limit: products.limit,
+    hasNextPage: products.hasNextPage,
+    hasPrevPage: products.hasPrevPage,
+    nextPage: products.nextPage,
+    prevPage: products.prevPage,
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -98,55 +166,43 @@ export default async function ProductsPage({ searchParams }: Props) {
             {categories.docs.find((cat) => cat.id.toString() === category)?.title}
           </p>
         )}
+        {search && (
+          <p className="text-gray-600 dark:text-gray-300">
+            Found {products.totalDocs} product{products.totalDocs !== 1 ? 's' : ''}
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Filters Sidebar */}
+        {/* Sidebar Filters */}
         <div className="lg:col-span-1">
-          <div className="space-y-6">
+          <div className="sticky top-8 space-y-6">
+            {/* Category Filter */}
             <CategoryFilter
-              categories={categories.docs.map((cat) => ({
-                ...cat,
-                id: cat.id.toString(),
-                slug: cat.slug || '',
-                title: cat.title || '',
-                image:
-                  cat.image && typeof cat.image === 'object' && 'url' in cat.image
-                    ? {
-                        url: cat.image.url || '',
-                        alt: cat.image.alt || cat.title || '',
-                        filename: cat.image.filename || '',
-                      }
-                    : undefined,
-                description: cat.description || null,
-                parent: cat.parent || null,
-                status: cat.status || 'draft',
-                sortOrder: cat.sortOrder || 0,
-              }))}
+              categories={categories.docs}
               selectedCategory={category}
+              searchQuery={search}
             />
-            <ProductFilters minPrice={minPrice} maxPrice={maxPrice} sort={sort} order={order} />
+
+            {/* Product Filters */}
+            <ProductFilters
+              searchQuery={search}
+              selectedCategory={category}
+              currentSort={sort}
+              currentOrder={order}
+              currentMinPrice={minPrice}
+              currentMaxPrice={maxPrice}
+            />
           </div>
         </div>
 
         {/* Products Grid */}
         <div className="lg:col-span-3">
-          <div className="mb-6 flex justify-between items-center">
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              Showing {products.docs.length} of {products.totalDocs} products
-            </p>
-          </div>
-
           <ProductGrid
-            products={products.docs}
-            pagination={{
-              page: products.page || 1,
-              totalPages: products.totalPages || 1,
-              totalDocs: products.totalDocs || 0,
-              hasNextPage: products.hasNextPage || false,
-              limit: products.limit || 10,
-              hasPrevPage: products.hasPrevPage || false,
-            }}
+            initialProducts={transformedProducts}
+            initialPagination={pagination}
+            searchQuery={search}
+            categoryFilter={category}
           />
         </div>
       </div>
@@ -154,24 +210,8 @@ export default async function ProductsPage({ searchParams }: Props) {
   )
 }
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const params = await searchParams
-  const { search, category } = params
-
-  let title = 'Products - Afrimall'
-  let description = 'Discover amazing products from African entrepreneurs and businesses.'
-
-  if (search) {
-    title = `Search: ${search} - Afrimall`
-    description = `Search results for "${search}" on Afrimall marketplace.`
-  } else if (category) {
-    // You could fetch the category name here for better SEO
-    title = `Category Products - Afrimall`
-    description = `Browse products in this category on Afrimall marketplace.`
-  }
-
-  return {
-    title,
-    description,
-  }
+export const metadata: Metadata = {
+  title: 'Products - AfriMall',
+  description:
+    'Browse our collection of authentic African products, from traditional crafts to modern fashion and home decor.',
 }
