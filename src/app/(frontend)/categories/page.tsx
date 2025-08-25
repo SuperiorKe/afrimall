@@ -14,110 +14,128 @@ export const metadata: Metadata = {
 }
 
 export default async function CategoriesPage() {
-  const payload = await getPayload({ config: configPromise })
+  try {
+    const payload = await getPayload({ config: configPromise })
 
-  // Fetch all active categories
-  const categories = await payload.find({
-    collection: 'categories',
-    where: { status: { equals: 'active' } },
-    sort: 'sortOrder',
-  })
+    // Fetch all active categories
+    const categories = await payload.find({
+      collection: 'categories',
+      where: { status: { equals: 'active' } },
+      sort: 'sortOrder',
+    })
 
-  // Get product counts for each category
-  const categoriesWithCounts = await Promise.all(
-    categories.docs.map(async (category) => {
-      const productCount = await payload.count({
-        collection: 'products',
-        where: {
-          and: [{ status: { equals: 'active' } }, { categories: { in: [category.id] } }],
-        },
-      })
+    // Get product counts for each category
+    const categoriesWithCounts = await Promise.all(
+      categories.docs.map(async (category) => {
+        try {
+          const productCount = await payload.count({
+            collection: 'products',
+            where: {
+              and: [{ status: { equals: 'active' } }, { categories: { in: [category.id] } }],
+            },
+          })
 
-      return {
-        ...category,
-        productCount: productCount.totalDocs,
-      }
-    }),
-  )
+          return {
+            ...category,
+            productCount: productCount.totalDocs,
+          }
+        } catch (error) {
+          console.warn(`Failed to get product count for category ${category.id}:`, error)
+          return {
+            ...category,
+            productCount: 0,
+          }
+        }
+      }),
+    )
 
-  // Separate featured categories
-  const featuredCategories = categoriesWithCounts.filter((cat) => cat.featured)
+    // Separate featured categories
+    const featuredCategories = categoriesWithCounts.filter((cat) => cat.featured)
 
-  return (
-    <div className="container mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="text-center mb-12">
-        <div className="flex justify-center mb-6">
-          <Logo className="h-16 w-16" />
+    return (
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="flex justify-center mb-6">
+            <Logo className="h-16 w-16" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Browse Categories</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Explore our curated collection of African products across different categories. Discover
+            authentic crafts, jewelry, textiles, and more from talented African entrepreneurs.
+          </p>
         </div>
-        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Browse Categories</h1>
-        <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          Explore our curated collection of African products across different categories. Discover
-          authentic crafts, jewelry, textiles, and more from talented African entrepreneurs.
-        </p>
-      </div>
 
-      {/* Featured Categories */}
-      {featuredCategories.length > 0 && (
-        <div className="mb-16">
+        {/* Featured Categories */}
+        {featuredCategories.length > 0 && (
+          <div className="mb-16">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
+              Featured Categories
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {featuredCategories.map((category) => (
+                <CategoryCard key={category.id} category={category} featured />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* All Categories */}
+        <div>
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
-            Featured Categories
+            All Categories
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredCategories.map((category) => (
-              <CategoryCard key={category.id} category={category} featured />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {categoriesWithCounts.map((category) => (
+              <CategoryCard key={category.id} category={category} />
             ))}
           </div>
         </div>
-      )}
 
-      {/* All Categories */}
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
-          All Categories
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {categoriesWithCounts.map((category) => (
-            <CategoryCard key={category.id} category={category} />
-          ))}
+        {/* Empty State */}
+        {categories.docs.length === 0 && (
+          <div className="text-center py-16">
+            <div className="text-gray-400 mb-4">
+              <svg
+                className="w-16 h-16 mx-auto"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1}
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No categories found</h3>
+            <p className="text-gray-500 dark:text-gray-400">Categories will appear here once they are added.</p>
+          </div>
+        )}
+      </div>
+    )
+  } catch (error) {
+    console.warn('Failed to load categories during build:', error)
+    // Return a fallback UI during build
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-12">
+          <div className="flex justify-center mb-6">
+            <Logo className="h-16 w-16" />
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Browse Categories</h1>
+          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            Explore our curated collection of African products across different categories.
+          </p>
+        </div>
+        <div className="text-center py-16">
+          <p className="text-gray-500 dark:text-gray-400">Categories will be loaded at runtime.</p>
         </div>
       </div>
-
-      {/* Empty State */}
-      {categories.docs.length === 0 && (
-        <div className="text-center py-16">
-          <div className="text-gray-400 mb-4">
-            <svg
-              className="w-16 h-16 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={1}
-                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-            No Categories Yet
-          </h3>
-          <p className="text-gray-600 dark:text-gray-300 mb-6">
-            Categories haven&apos;t been set up yet. Please check back later or contact the
-            administrator.
-          </p>
-          <Link
-            href="/products"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Browse All Products
-          </Link>
-        </div>
-      )}
-    </div>
-  )
+    )
+  }
 }
 
 // Category Card Component

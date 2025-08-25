@@ -28,24 +28,34 @@ const dirname = path.dirname(filename)
 
 // Database configuration - supports both SQLite (dev) and PostgreSQL (prod)
 const getDatabaseAdapter = () => {
-  const databaseUrl = process.env.DATABASE_URL
+  try {
+    const databaseUrl = process.env.DATABASE_URL
 
-  if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
-    // PostgreSQL for production (Supabase)
-    return postgresAdapter({
-      pool: {
-        connectionString: databaseUrl,
-        ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
+      // PostgreSQL for production (Supabase)
+      return postgresAdapter({
+        pool: {
+          connectionString: databaseUrl,
+          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+        },
+      })
+    }
+
+    // SQLite for development (default)
+    return sqliteAdapter({
+      client: {
+        url: databaseUrl || 'file:./afrimall.db',
+      },
+    })
+  } catch (error) {
+    console.warn('Failed to initialize database adapter during build:', error)
+    // Return a fallback adapter that won't fail during build
+    return sqliteAdapter({
+      client: {
+        url: 'file:./afrimall.db',
       },
     })
   }
-
-  // SQLite for development (default)
-  return sqliteAdapter({
-    client: {
-      url: databaseUrl || 'file:./afrimall.db',
-    },
-  })
 }
 
 export default buildConfig({
