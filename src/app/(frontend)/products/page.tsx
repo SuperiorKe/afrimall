@@ -66,19 +66,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     limit: 12,
     page: parseInt(page),
     sort: `${order === 'desc' ? '-' : ''}${sort}`,
-    populate: {
-      categories: {
-        populate: {
-          image: true,
-        },
-      },
-      images: {
-        populate: {
-          image: true,
-        },
-      },
-      tags: true,
-    },
   })
 
   // Fetch categories for filter
@@ -86,9 +73,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     collection: 'categories',
     where: { status: { equals: 'active' } },
     sort: 'sortOrder',
-    populate: {
-      image: true,
-    },
   })
 
   // Transform products for initial render
@@ -179,7 +163,7 @@ export default async function ProductsPage({ searchParams }: Props) {
           <div className="sticky top-8 space-y-6">
             {/* Category Filter */}
             <CategoryFilter
-              categories={categories.docs}
+              categories={categories.docs as any}
               selectedCategory={category}
               searchQuery={search}
             />
@@ -200,7 +184,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         <div className="lg:col-span-3">
           <ProductGrid
             initialProducts={transformedProducts}
-            initialPagination={pagination}
+            initialPagination={pagination as any}
             searchQuery={search}
             categoryFilter={category}
           />

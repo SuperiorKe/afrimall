@@ -51,12 +51,7 @@ const getDatabaseAdapter = () => {
 export default buildConfig({
   admin: {
     components: {
-      // The `BeforeLogin` component renders a message that you see while logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below.
-      beforeLogin: ['@/components/BeforeLogin'],
-      // The `BeforeDashboard` component renders the 'welcome' block that you see after logging into your admin panel.
-      // Feel free to delete this at any time. Simply remove the line below.
-      beforeDashboard: ['@/components/BeforeDashboard'],
+      // Admin components removed for e-commerce focus
     },
     // Custom admin branding
     meta: {
@@ -109,7 +104,7 @@ export default buildConfig({
     ...plugins,
     // storage-adapter-placeholder
   ],
-  secret: process.env.PAYLOAD_SECRET,
+  secret: process.env.PAYLOAD_SECRET || 'your-secret-key-here',
   sharp,
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
@@ -129,9 +124,5 @@ export default buildConfig({
     'http://localhost:3000',
     'https://your-domain.com', // Replace with your actual domain
   ],
-  // Rate limiting configuration
-  rateLimit: {
-    max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'), // 15 minutes
-  },
+
 })

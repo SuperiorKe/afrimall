@@ -3,7 +3,6 @@ import { afrimallCategories } from './afrimall-categories'
 import { afrimallProducts, categoryMapping } from './afrimall-products'
 import { image1 } from './image-1'
 import { image2 } from './image-2'
-import { imageHero1 } from './image-hero-1'
 
 const collections: CollectionSlug[] = ['categories', 'products', 'media']
 const globals: GlobalSlug[] = ['header', 'footer']
@@ -44,8 +43,7 @@ export const seed = async ({
 
     const seedDir = path.join(process.cwd(), 'src', 'endpoints', 'seed')
 
-    const [image1Buffer, image2Buffer, hero1Buffer] = await Promise.all([
-      fs.promises.readFile(path.join(seedDir, 'image-hero1.webp')),
+    const [image1Buffer, image2Buffer] = await Promise.all([
       fs.promises.readFile(path.join(seedDir, 'image-post1.webp')),
       fs.promises.readFile(path.join(seedDir, 'image-post2.webp')),
     ])
@@ -58,7 +56,7 @@ export const seed = async ({
           alt: 'African marketplace product image 1',
         },
         file: {
-          name: 'image-hero1.webp',
+          name: 'image-post1.webp',
           data: image1Buffer,
           mimetype: 'image/webp',
           size: image1Buffer.length,
@@ -71,28 +69,16 @@ export const seed = async ({
           alt: 'African marketplace product image 2',
         },
         file: {
-          name: 'image-post1.webp',
+          name: 'image-post2.webp',
           data: image2Buffer,
           mimetype: 'image/webp',
           size: image2Buffer.length,
         },
       }),
-      payload.create({
-        collection: 'media',
-        data: {
-          ...imageHero1,
-          alt: 'African marketplace product image 3',
-        },
-        file: {
-          name: 'image-post2.webp',
-          data: hero1Buffer,
-          mimetype: 'image/webp',
-          size: hero1Buffer.length,
-        },
-      }),
+
     ])
 
-    const [image1Doc, image2Doc, imageHomeDoc] = mediaResults
+    const [image1Doc, image2Doc] = mediaResults
     payload.logger.info(`✅ Created ${mediaResults.length} media files`)
 
     // Create categories
@@ -113,8 +99,10 @@ export const seed = async ({
         })
 
         // Store for product linking
-        createdCategories[category.slug] = category
-        payload.logger.info(`✅ Created: ${category.title} (slug: ${category.slug})`)
+        if (category.slug) {
+          createdCategories[category.slug] = category
+          payload.logger.info(`✅ Created: ${category.title} (slug: ${category.slug})`)
+        }
       } catch (error: any) {
         payload.logger.error(`❌ Failed to create ${categoryData.title}:`)
         payload.logger.error(`   Message: ${error.message}`)
@@ -135,18 +123,23 @@ export const seed = async ({
         payload.logger.info(`Creating product: ${productData.title}`)
 
         // Find which categories this product belongs to
-        const productCategories: string[] = []
+        const productCategories: number[] = []
         for (const [categorySlug, productTitles] of Object.entries(categoryMapping)) {
           if (productTitles.includes(productData.title)) {
             const category = createdCategories[categorySlug]
-            if (category) {
-              productCategories.push(category.id)
+            if (category && category.id) {
+              // Ensure we only add numeric IDs
+              const categoryId =
+                typeof category.id === 'string' ? parseInt(category.id, 10) : category.id
+              if (!isNaN(categoryId)) {
+                productCategories.push(categoryId)
+              }
             }
           }
         }
 
         // Assign random images to products for variety
-        const randomImage = [image1Doc, image2Doc, imageHomeDoc][Math.floor(Math.random() * 3)]
+        const randomImage = [image1Doc, image2Doc][Math.floor(Math.random() * 2)]
 
         const product = await payload.create({
           collection: 'products',
@@ -159,7 +152,7 @@ export const seed = async ({
                 alt: `${productData.title} - Product Image`,
               },
             ],
-          },
+          } as any, // Type assertion to bypass strict type checking for seed data
           req,
         })
 

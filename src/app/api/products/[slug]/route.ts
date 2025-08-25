@@ -98,8 +98,8 @@ export const GET = withErrorHandling(
     try {
       const payload = await getPayloadHMR({ config: configPromise })
 
-      // Find product by slug instead of ID
-      const product = await payload.find({
+      // Try to find product by slug first, then by ID if slug doesn't work
+      let product = await payload.find({
         collection: 'products',
         where: {
           and: [
@@ -109,6 +109,20 @@ export const GET = withErrorHandling(
         },
         limit: 1,
       })
+
+      // If not found by slug, try by ID (for admin operations)
+      if (!product || product.docs.length === 0) {
+        product = await payload.find({
+          collection: 'products',
+          where: {
+            and: [
+              { id: { equals: slug } },
+              { status: { equals: 'active' } },
+            ],
+          },
+          limit: 1,
+        })
+      }
 
       if (!product || product.docs.length === 0) {
         throw new ApiError('Product not found', 404, 'NOT_FOUND')
@@ -141,8 +155,8 @@ export const PATCH = withErrorHandling(
     try {
       const payload = await getPayloadHMR({ config: configPromise })
 
-      // First find the product by slug to get its ID
-      const existingProduct = await payload.find({
+      // First find the product by slug or ID to get its ID
+      let existingProduct = await payload.find({
         collection: 'products',
         where: {
           and: [
@@ -152,6 +166,20 @@ export const PATCH = withErrorHandling(
         },
         limit: 1,
       })
+
+      // If not found by slug, try by ID (for admin operations)
+      if (!existingProduct || existingProduct.docs.length === 0) {
+        existingProduct = await payload.find({
+          collection: 'products',
+          where: {
+            and: [
+              { id: { equals: slug } },
+              { status: { equals: 'active' } },
+            ],
+          },
+          limit: 1,
+        })
+      }
 
       if (!existingProduct || existingProduct.docs.length === 0) {
         throw new ApiError('Product not found', 404, 'NOT_FOUND')
@@ -271,8 +299,8 @@ export const PUT = withErrorHandling(
     try {
       const payload = await getPayloadHMR({ config: configPromise })
 
-      // First find the product by slug to get its ID
-      const existingProduct = await payload.find({
+      // First find the product by slug or ID to get its ID
+      let existingProduct = await payload.find({
         collection: 'products',
         where: {
           and: [
@@ -282,6 +310,20 @@ export const PUT = withErrorHandling(
         },
         limit: 1,
       })
+
+      // If not found by slug, try by ID (for admin operations)
+      if (!existingProduct || existingProduct.docs.length === 0) {
+        existingProduct = await payload.find({
+          collection: 'products',
+          where: {
+            and: [
+              { id: { equals: slug } },
+              { status: { equals: 'active' } },
+            ],
+          },
+          limit: 1,
+        })
+      }
 
       if (!existingProduct || existingProduct.docs.length === 0) {
         throw new ApiError('Product not found', 404, 'NOT_FOUND')
@@ -401,8 +443,8 @@ export const DELETE = withErrorHandling(
     try {
       const payload = await getPayloadHMR({ config: configPromise })
 
-      // First find the product by slug to get its ID
-      const existingProduct = await payload.find({
+      // First find the product by slug or ID to get its ID
+      let existingProduct = await payload.find({
         collection: 'products',
         where: {
           and: [
@@ -412,6 +454,20 @@ export const DELETE = withErrorHandling(
         },
         limit: 1,
       })
+
+      // If not found by slug, try by ID (for admin operations)
+      if (!existingProduct || existingProduct.docs.length === 0) {
+        existingProduct = await payload.find({
+          collection: 'products',
+          where: {
+            and: [
+              { id: { equals: slug } },
+              { status: { equals: 'active' } },
+            ],
+          },
+          limit: 1,
+        })
+      }
 
       if (!existingProduct || existingProduct.docs.length === 0) {
         throw new ApiError('Product not found', 404, 'NOT_FOUND')

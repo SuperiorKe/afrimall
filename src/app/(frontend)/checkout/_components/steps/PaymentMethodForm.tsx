@@ -3,19 +3,14 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useCheckout } from '../CheckoutContext'
+import { useCart } from '@/contexts/CartContext'
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { getStripe, stripeElementsOptions } from '@/utilities/stripe-client'
-
-const paymentMethodSchema = z.object({
-  saveCard: z.boolean().optional(),
-})
-
-type FormData = z.infer<typeof paymentMethodSchema>
+import { paymentMethodSchema, type PaymentMethodFormData } from '@/lib/validation/checkout-schemas'
 
 // Stripe Elements component
 function StripePaymentForm() {
@@ -23,12 +18,19 @@ function StripePaymentForm() {
   const elements = useElements()
   const { formData, updateFormData, setCurrentStep, stripePayment, createPaymentIntent } =
     useCheckout()
+  const { cart } = useCart()
   const [isCardComplete, setIsCardComplete] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { register, handleSubmit } = useForm<FormData>({
+  const { register, handleSubmit, formState: { errors, isValid }, setValue, trigger } = useForm<PaymentMethodFormData>({
     resolver: zodResolver(paymentMethodSchema),
-    defaultValues: formData.paymentMethod,
+    defaultValues: {
+      saveCard: false,
+      acceptTerms: false,
+      acceptMarketing: false,
+    },
+    mode: 'onChange',
   })
 
   const cardElementOptions = {
@@ -53,21 +55,49 @@ function StripePaymentForm() {
     setCardError(event.error ? event.error.message : null)
   }
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: PaymentMethodFormData) => {
     if (!stripe || !elements || !isCardComplete) {
       return
     }
 
-    // Mock cart total - in real app, this would come from cart context
-    const mockTotal = 129.97 // This should come from your cart/order total
-
-    // Create payment intent
-    const success = await createPaymentIntent(mockTotal, 'usd')
-
-    if (success) {
-      updateFormData({ paymentMethod: data })
-      setCurrentStep(5) // Move to review step
+    if (!cart || cart.items.length === 0) {
+      setCardError('Cart is empty. Please add items to continue.')
+      return
     }
+
+    if (!data.acceptTerms) {
+      setCardError('You must accept the terms and conditions to continue.')
+      return
+    }
+
+    try {
+      setIsSubmitting(true)
+      setCardError(null)
+
+      // Calculate total from cart
+      const subtotal = cart.subtotal
+      const shipping = 9.99 // This would be calculated based on shipping method
+      const tax = subtotal * 0.1 // Example tax calculation
+      const total = subtotal + shipping + tax
+
+      // Create payment intent
+      const success = await createPaymentIntent(total, 'usd')
+
+      if (success) {
+        await updateFormData({ paymentMethod: data })
+        setCurrentStep(5) // Move to review step
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error)
+      setCardError('Failed to process payment. Please try again.')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleFieldChange = async (field: keyof PaymentMethodFormData, value: any) => {
+    setValue(field, value)
+    await trigger(field)
   }
 
   return (
@@ -91,10 +121,47 @@ function StripePaymentForm() {
         </div>
 
         {/* Save card option */}
-        <div className="flex items-center space-x-2">
-          <Checkbox id="saveCard" {...register('saveCard')} />
-          <Label htmlFor="saveCard" className="text-sm text-gray-700">
+        <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+          <Checkbox 
+            id="saveCard" 
+            checked={formData.paymentMethod?.saveCard || false}
+            onCheckedChange={(checked) => handleFieldChange('saveCard', checked)}
+          />
+          <Label htmlFor="saveCard" className="text-sm text-gray-700 cursor-pointer">
             Save card for future purchases
+          </Label>
+        </div>
+
+        {/* Terms and conditions */}
+        <div className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <Checkbox 
+            id="acceptTerms" 
+            required
+            checked={formData.paymentMethod?.acceptTerms || false}
+            onCheckedChange={(checked) => handleFieldChange('acceptTerms', checked)}
+          />
+          <div className="flex-1">
+            <Label htmlFor="acceptTerms" className="text-sm font-medium text-blue-900 cursor-pointer">
+              I accept the terms and conditions *
+            </Label>
+            <p className="text-xs text-blue-700 mt-1">
+              By checking this box, you agree to our terms of service and privacy policy.
+            </p>
+            {errors.acceptTerms && (
+              <p className="text-xs text-red-600 mt-1">{errors.acceptTerms.message}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Marketing consent */}
+        <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+          <Checkbox 
+            id="acceptMarketing" 
+            checked={formData.paymentMethod?.acceptMarketing || false}
+            onCheckedChange={(checked) => handleFieldChange('acceptMarketing', checked)}
+          />
+          <Label htmlFor="acceptMarketing" className="text-sm text-gray-700 cursor-pointer">
+            Send me updates about new products and special offers
           </Label>
         </div>
 
@@ -106,12 +173,33 @@ function StripePaymentForm() {
         )}
       </div>
 
-      <div className="mt-8 flex justify-between">
-        <Button type="button" variant="outline" onClick={() => setCurrentStep(3)}>
-          Back
+      <div className="mt-8 flex justify-between items-center pt-4 border-t">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => setCurrentStep(3)}
+          className="transition-colors"
+        >
+          ← Back to Billing
         </Button>
-        <Button type="submit" disabled={!stripe || !isCardComplete || stripePayment.isProcessing}>
-          {stripePayment.isProcessing ? 'Processing...' : 'Review Order'}
+        
+        <div className="text-sm text-gray-500">
+          Step 4 of 5 • Payment Method
+        </div>
+        
+        <Button 
+          type="submit" 
+          disabled={!stripe || !isCardComplete || !isValid || isSubmitting || stripePayment.isProcessing}
+          className="disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {isSubmitting || stripePayment.isProcessing ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Processing...
+            </>
+          ) : (
+            'Review Order'
+          )}
         </Button>
       </div>
     </form>

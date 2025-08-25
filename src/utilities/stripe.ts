@@ -16,6 +16,7 @@ export const STRIPE_CONFIG = {
   paymentMethods: ['card'],
   currency: 'usd',
   mode: 'payment',
+  supportedCurrencies: ['usd', 'ngn', 'kes', 'zar', 'ghs', 'ugx'],
 } as const
 
 // Helper function to format amount for Stripe (convert to cents)

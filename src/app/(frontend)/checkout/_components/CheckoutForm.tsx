@@ -1,6 +1,7 @@
 'use client'
 
 import { useCheckout } from './CheckoutContext'
+import { useCart } from '@/contexts/CartContext'
 import { ContactInfoForm } from './steps/ContactInfoForm'
 import { ShippingInfoForm } from './steps/ShippingInfoForm'
 import { BillingInfoForm } from './steps/BillingInfoForm'
@@ -10,6 +11,7 @@ import { Button } from '@/components/ui/button'
 
 export function CheckoutForm() {
   const { currentStep, setCurrentStep } = useCheckout()
+  const { cart, loading: cartLoading } = useCart()
 
   const steps = [
     { id: 1, name: 'Contact', component: <ContactInfoForm /> },
@@ -126,7 +128,10 @@ export function CheckoutForm() {
               Continue to {steps.find((step) => step.id === currentStep + 1)?.name} →
             </Button>
           ) : (
-            <Button className="bg-gradient-to-r from-afrimall-green to-green-600 hover:from-green-600 hover:to-afrimall-green text-white font-bold">
+            <Button 
+              className="bg-gradient-to-r from-afrimall-green to-green-600 hover:from-green-600 hover:to-afrimall-green text-white font-bold"
+              disabled={cartLoading || !cart || cart.items.length === 0}
+            >
               🛍️ Place Order
             </Button>
           )}

@@ -83,8 +83,8 @@ type EnvConfig = z.infer<typeof envSchema>
 type RuntimeConfig = z.infer<typeof runtimeConfigSchema>
 
 class ConfigManager {
-  private envConfig: EnvConfig
-  private runtimeConfig: RuntimeConfig
+  private envConfig!: EnvConfig
+  private runtimeConfig!: RuntimeConfig
 
   constructor() {
     this.validateEnvironment()
@@ -125,10 +125,11 @@ class ConfigManager {
       logger.info('Environment configuration validated successfully', 'Config')
     } catch (error) {
       if (error instanceof z.ZodError) {
-        const missingVars = error.errors.map((err) => err.path.join('.'))
+        const zodError = error as z.ZodError
+        const missingVars = zodError.issues.map((err: any) => err.path.join('.'))
         logger.error('Environment configuration validation failed', 'Config', error as Error, {
           missingVariables: missingVars,
-          details: error.errors,
+          details: zodError.issues,
         })
         throw new Error(`Missing or invalid environment variables: ${missingVars.join(', ')}`)
       }
@@ -184,7 +185,7 @@ class ConfigManager {
       },
     })
 
-    logger.info('Runtime configuration built successfully', 'Config', undefined, {
+    logger.info('Runtime configuration built successfully', 'Config', {
       environment: this.envConfig.NODE_ENV,
       databaseType,
       features: this.runtimeConfig.features,

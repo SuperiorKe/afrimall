@@ -174,7 +174,7 @@ export const ShoppingCart: CollectionConfig = {
     beforeValidate: [
       ({ data }) => {
         // Set expiration date for new carts (30 days from now)
-        if (!data.expiresAt) {
+        if (data && !data.expiresAt) {
           const expirationDate = new Date()
           expirationDate.setDate(expirationDate.getDate() + 30)
           data.expiresAt = expirationDate.toISOString()

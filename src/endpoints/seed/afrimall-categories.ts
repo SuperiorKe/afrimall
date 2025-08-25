@@ -4,7 +4,7 @@ export const afrimallCategories = [
   {
     title: 'African Art & Crafts',
     description: 'Authentic handcrafted art pieces and traditional crafts from across Africa',
-    status: 'active',
+    status: 'active' as const,
     featured: true,
     sortOrder: 1,
     seo: {
@@ -16,7 +16,7 @@ export const afrimallCategories = [
   {
     title: 'Jewelry & Accessories',
     description: 'Beautiful African jewelry, beadwork, and fashion accessories',
-    status: 'active',
+    status: 'active' as const,
     featured: true,
     sortOrder: 2,
     seo: {
@@ -28,7 +28,7 @@ export const afrimallCategories = [
   {
     title: 'Textiles & Clothing',
     description: 'Traditional African fabrics, clothing, and textile products',
-    status: 'active',
+    status: 'active' as const,
     featured: true,
     sortOrder: 3,
     seo: {
@@ -40,7 +40,7 @@ export const afrimallCategories = [
   {
     title: 'Home & Decor',
     description: 'African home decor, furniture, and interior design items',
-    status: 'active',
+    status: 'active' as const,
     featured: true,
     sortOrder: 4,
     seo: {
@@ -52,7 +52,7 @@ export const afrimallCategories = [
   {
     title: 'Music & Instruments',
     description: 'Traditional African musical instruments and music-related items',
-    status: 'active',
+    status: 'active' as const,
     featured: false,
     sortOrder: 5,
     seo: {
@@ -64,7 +64,7 @@ export const afrimallCategories = [
   {
     title: 'Beauty & Wellness',
     description: 'Natural African beauty products and wellness items',
-    status: 'active',
+    status: 'active' as const,
     featured: false,
     sortOrder: 6,
     seo: {
@@ -81,21 +81,21 @@ export const artCraftsSubcategories = [
     title: 'Sculptures',
     description: 'Hand-carved wooden and stone sculptures',
     parent: 'african-art-crafts', // Will be set dynamically
-    status: 'active',
+    status: 'active' as const,
     sortOrder: 1,
   },
   {
     title: 'Masks',
     description: 'Traditional African ceremonial and decorative masks',
     parent: 'african-art-crafts',
-    status: 'active',
+    status: 'active' as const,
     sortOrder: 2,
   },
   {
     title: 'Paintings',
     description: 'African-inspired paintings and artwork',
     parent: 'african-art-crafts',
-    status: 'active',
+    status: 'active' as const,
     sortOrder: 3,
   },
   {

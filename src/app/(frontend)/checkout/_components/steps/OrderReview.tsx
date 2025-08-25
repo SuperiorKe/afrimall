@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCheckout } from '../CheckoutContext'
+import { useCart } from '@/contexts/CartContext'
 import { Button } from '@/components/ui/button'
 import { useStripe, useElements, CardElement } from '@stripe/react-stripe-js'
 import Image from 'next/image'
@@ -11,26 +12,27 @@ export function OrderReview() {
   const router = useRouter()
   const stripe = useStripe()
   const elements = useElements()
-  const { formData, setCurrentStep, stripePayment, resetPaymentState } = useCheckout()
+  const { formData, setCurrentStep, stripePayment, resetPaymentState, customerId } = useCheckout()
   const { contactInfo, shippingAddress, billingAddress, sameAsBilling } = formData
+  const { cart } = useCart()
 
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState(false)
 
-  // Mock cart items - in a real app, this would come from your cart context
-  const cartItems = [
-    { id: 1, name: 'Product 1', price: 29.99, quantity: 1, image: '/placeholder-product.jpg' },
-    { id: 2, name: 'Product 2', price: 49.99, quantity: 2, image: '/placeholder-product.jpg' },
-  ]
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  // Use real cart data
+  const cartItems = cart?.items || []
+  const subtotal = cart?.subtotal || 0
   const shipping = 9.99 // This would be calculated based on shipping method
   const tax = subtotal * 0.1 // Example tax calculation
   const total = subtotal + shipping + tax
 
   const createOrder = async (paymentIntentId: string) => {
     try {
+      if (!customerId) {
+        throw new Error('Customer ID is required')
+      }
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -38,15 +40,23 @@ export function OrderReview() {
         },
         body: JSON.stringify({
           // Order details
-          items: cartItems,
+          items: cartItems.map(item => ({
+            product: item.product.id,
+            variant: item.variant?.id || null,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            totalPrice: item.totalPrice,
+            productSnapshot: {
+              title: item.product.title,
+              sku: item.product.id, // Using ID as SKU for now
+              image: item.product.images[0]?.url || null,
+            },
+          })),
           total: total,
           currency: 'USD',
 
           // Customer information
-          customer: {
-            email: contactInfo.email,
-            phone: contactInfo.phone,
-          },
+          customer: customerId,
 
           // Addresses
           shippingAddress: shippingAddress,
@@ -57,6 +67,10 @@ export function OrderReview() {
           paymentStatus: 'paid',
           paymentReference: paymentIntentId,
           stripePaymentIntentId: paymentIntentId,
+
+          // Shipping information
+          shippingMethod: formData.shippingMethod || 'standard',
+          specialInstructions: '',
 
           // Order status
           status: 'confirmed',
@@ -76,8 +90,19 @@ export function OrderReview() {
   }
 
   const handlePlaceOrder = async () => {
+    // Final validation checks
+    if (!customerId) {
+      setPaymentError('Please complete the contact information step to create your customer account.')
+      return
+    }
+
     if (!stripe || !elements || !stripePayment.clientSecret) {
       setPaymentError('Payment system not ready. Please try again.')
+      return
+    }
+
+    if (cartItems.length === 0) {
+      setPaymentError('Your cart is empty. Please add items to continue.')
       return
     }
 
@@ -118,9 +143,12 @@ export function OrderReview() {
         setPaymentSuccess(true)
         resetPaymentState()
 
+        // Clear cart after successful order
+        // TODO: Implement cart clearing after order creation
+
         // Redirect to order confirmation page
         setTimeout(() => {
-          router.push(`/order-confirmation/${order.id}`)
+          router.push(`/order-confirmation/${order.data.id}`)
         }, 2000)
       }
     } catch (error: unknown) {
@@ -213,18 +241,18 @@ export function OrderReview() {
             <div key={item.id} className="flex items-center justify-between">
               <div className="flex items-center">
                 <Image
-                  src={item.image}
-                  alt={item.name}
+                  src={item.product.images[0]?.url || '/placeholder-image.jpg'}
+                  alt={item.product.images[0]?.alt || item.product.title}
                   width={64}
                   height={64}
                   className="w-16 h-16 object-cover rounded"
                 />
                 <div className="ml-4">
-                  <p className="font-medium">{item.name}</p>
+                  <p className="font-medium">{item.product.title}</p>
                   <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
                 </div>
               </div>
-              <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+              <p className="font-medium">${item.totalPrice.toFixed(2)}</p>
             </div>
           ))}
         </div>
@@ -265,21 +293,43 @@ export function OrderReview() {
         </div>
       )}
 
-      <div className="flex justify-between">
+      {/* Customer Status */}
+      {!customerId && (
+        <div className="rounded-md bg-yellow-50 p-4 mb-6">
+          <div className="text-sm text-yellow-800">
+            Please complete the contact information step to create your customer account.
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center pt-4 border-t">
         <Button
           type="button"
           variant="outline"
           onClick={() => setCurrentStep(4)}
           disabled={isProcessing}
+          className="transition-colors"
         >
-          Back
+          ← Back to Payment
         </Button>
+        
+        <div className="text-sm text-gray-500">
+          Step 5 of 5 • Order Review
+        </div>
+        
         <Button
           onClick={handlePlaceOrder}
-          disabled={isProcessing || !stripePayment.clientSecret}
-          className="bg-green-600 hover:bg-green-700"
+          disabled={isProcessing || !stripePayment.clientSecret || !customerId}
+          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isProcessing ? 'Processing Payment...' : `Place Order - $${total.toFixed(2)}`}
+          {isProcessing ? (
+            <>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              Processing Payment...
+            </>
+          ) : (
+            `Place Order - $${total.toFixed(2)}`
+          )}
         </Button>
       </div>
     </div>

@@ -76,12 +76,12 @@ export interface Config {
     orders: Order;
     'shopping-cart': ShoppingCart;
     users: User;
+    'payload-preferences': PayloadPreference;
     redirects: Redirect;
     forms: Form;
     'form-submissions': FormSubmission;
     search: Search;
     'payload-locked-documents': PayloadLockedDocument;
-    'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
   };
   collectionsJoins: {};
@@ -94,12 +94,12 @@ export interface Config {
     orders: OrdersSelect<false> | OrdersSelect<true>;
     'shopping-cart': ShoppingCartSelect<false> | ShoppingCartSelect<true>;
     users: UsersSelect<false> | UsersSelect<true>;
+    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     redirects: RedirectsSelect<false> | RedirectsSelect<true>;
     forms: FormsSelect<false> | FormsSelect<true>;
     'form-submissions': FormSubmissionsSelect<false> | FormSubmissionsSelect<true>;
     search: SearchSelect<false> | SearchSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
-    'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
   };
   db: {
@@ -168,6 +168,9 @@ export interface UserAuthOperations {
  */
 export interface Media {
   id: number;
+  /**
+   * Alternative text for accessibility (optional)
+   */
   alt?: string | null;
   caption?: {
     root: {
@@ -359,11 +362,13 @@ export interface Product {
   /**
    * Product images (first image will be the main image)
    */
-  images: {
-    image: number | Media;
-    alt: string;
-    id?: string | null;
-  }[];
+  images?:
+    | {
+        image?: (number | null) | Media;
+        alt?: string | null;
+        id?: string | null;
+      }[]
+    | null;
   /**
    * Base price in USD
    */
@@ -859,9 +864,19 @@ export interface ShoppingCart {
  */
 export interface User {
   id: number;
-  name?: string | null;
+  /**
+   * Admin user full name
+   */
+  name: string;
+  /**
+   * User role and permissions level
+   */
+  role?: ('super_admin' | 'admin' | 'editor') | null;
   updatedAt: string;
   createdAt: string;
+  /**
+   * Admin user email address (used for login)
+   */
   email: string;
   resetPasswordToken?: string | null;
   resetPasswordExpiration?: string | null;
@@ -877,6 +892,34 @@ export interface User {
       }[]
     | null;
   password?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-preferences".
+ */
+export interface PayloadPreference {
+  id: number;
+  user:
+    | {
+        relationTo: 'customers';
+        value: number | Customer;
+      }
+    | {
+        relationTo: 'users';
+        value: number | User;
+      };
+  key?: string | null;
+  value?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1166,6 +1209,10 @@ export interface PayloadLockedDocument {
         value: number | User;
       } | null)
     | ({
+        relationTo: 'payload-preferences';
+        value: number | PayloadPreference;
+      } | null)
+    | ({
         relationTo: 'redirects';
         value: number | Redirect;
       } | null)
@@ -1191,34 +1238,6 @@ export interface PayloadLockedDocument {
         relationTo: 'users';
         value: number | User;
       };
-  updatedAt: string;
-  createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-preferences".
- */
-export interface PayloadPreference {
-  id: number;
-  user:
-    | {
-        relationTo: 'customers';
-        value: number | Customer;
-      }
-    | {
-        relationTo: 'users';
-        value: number | User;
-      };
-  key?: string | null;
-  value?:
-    | {
-        [k: string]: unknown;
-      }
-    | unknown[]
-    | string
-    | number
-    | boolean
-    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1626,6 +1645,7 @@ export interface ShoppingCartSelect<T extends boolean = true> {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  role?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -1642,6 +1662,17 @@ export interface UsersSelect<T extends boolean = true> {
         createdAt?: T;
         expiresAt?: T;
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "payload-preferences_select".
+ */
+export interface PayloadPreferencesSelect<T extends boolean = true> {
+  user?: T;
+  key?: T;
+  value?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -1843,17 +1874,6 @@ export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
   document?: T;
   globalSlug?: T;
   user?: T;
-  updatedAt?: T;
-  createdAt?: T;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "payload-preferences_select".
- */
-export interface PayloadPreferencesSelect<T extends boolean = true> {
-  user?: T;
-  key?: T;
-  value?: T;
   updatedAt?: T;
   createdAt?: T;
 }

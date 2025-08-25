@@ -2,12 +2,15 @@
 
 import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { formatPrice } from '@/utilities/formatPrice'
 import { AddToCartButton } from './AddToCartButton'
-import { ProductGallery } from './ProductGallery'
+import { SizeSelector } from './SizeSelector'
+import { QuantityControls } from './QuantityControls'
+import { ProductFeatures } from './ProductFeatures'
+import { ProductRating } from './ProductRating'
+import { Heart } from 'lucide-react'
 import { ProductVariant } from '@/payload-types'
 import { cn } from '@/utilities/ui'
 
@@ -37,8 +40,8 @@ interface Product {
           id: number
           url?: string | null
           alt?: string | null
-          width?: number | null
-          height?: number | null
+          width?: string | null
+          height?: string | null
         }
     alt: string
     id?: string | null
@@ -88,7 +91,9 @@ export function ProductDetail({ product, variants }: ProductDetailProps) {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     variants.find((v) => v.status === 'active') || null,
   )
+  const [selectedSize, setSelectedSize] = useState<string | null>(null)
   const [quantity, setQuantity] = useState(1)
+  const [isWishlisted, setIsWishlisted] = useState(false)
 
   // Get current price (variant price or product price)
   const currentPrice = selectedVariant?.price ?? product.price
@@ -96,33 +101,37 @@ export function ProductDetail({ product, variants }: ProductDetailProps) {
 
   // Get current inventory
   const currentInventory = selectedVariant
-    ? selectedVariant.inventory.available
-    : product.inventory.quantity
+    ? selectedVariant.inventory?.available
+    : product.inventory?.quantity
 
   const hasDiscount = currentComparePrice && currentComparePrice > currentPrice
   const discountPercentage = hasDiscount
     ? Math.round(((currentComparePrice - currentPrice) / currentComparePrice) * 100)
     : 0
 
-  const isOutOfStock =
-    product.inventory.trackQuantity && currentInventory <= 0 && !product.inventory.allowBackorder
-  const isLowStock =
-    product.inventory.trackQuantity &&
-    currentInventory <= product.inventory.lowStockThreshold &&
-    currentInventory > 0
+  const isOutOfStock = Boolean(
+    product.inventory?.trackQuantity &&
+      (currentInventory || 0) <= 0 &&
+      !product.inventory?.allowBackorder,
+  )
+  const isLowStock = Boolean(
+    product.inventory?.trackQuantity &&
+      (currentInventory || 0) <= (product.inventory?.lowStockThreshold || 0) &&
+      (currentInventory || 0) > 0,
+  )
 
-  // Group variants by option name for display
-  const variantOptions: { [key: string]: string[] } = {}
-  variants.forEach((variant) => {
-    variant.options.forEach((option) => {
-      if (!variantOptions[option.name]) {
-        variantOptions[option.name] = []
-      }
-      if (!variantOptions[option.name].includes(option.value)) {
-        variantOptions[option.name].push(option.value)
-      }
-    })
-  })
+  // Extract available sizes from variants
+  const availableSizes = Array.from(
+    new Set(
+      variants
+        .filter((v) => v.status === 'active')
+        .flatMap((v) => v.options.filter((opt) => opt.name === 'Size').map((opt) => opt.value)),
+    ),
+  )
+
+  // Mock rating data (replace with actual data when available)
+  const rating = 4.8
+  const reviewCount = 45
 
   const handleVariantChange = (optionName: string, optionValue: string) => {
     // Find variant that matches the selected option
@@ -135,201 +144,121 @@ export function ProductDetail({ product, variants }: ProductDetailProps) {
     }
   }
 
+  const handleSizeSelect = (size: string) => {
+    setSelectedSize(size)
+    handleVariantChange('Size', size)
+  }
+
+  const toggleWishlist = () => {
+    setIsWishlisted(!isWishlisted)
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Product Title */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{product.title}</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">{product.title}</h1>
 
-        {/* Categories */}
-        {product.categories && product.categories.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {product.categories.map((category) => (
-              <span
-                key={category.id}
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-              >
-                {category.title}
+        {/* Product Description */}
+        <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed">
+          {product.description}
+        </p>
+      </div>
+
+      {/* Rating */}
+      <ProductRating rating={rating} reviewCount={reviewCount} />
+
+      {/* Price Section */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="text-3xl font-bold text-gray-900 dark:text-white">
+            {formatPrice(currentPrice)}
+          </span>
+          {hasDiscount && (
+            <>
+              <span className="text-xl text-gray-500 dark:text-gray-400 line-through">
+                {formatPrice(currentComparePrice!)}
               </span>
-            ))}
-          </div>
-        )}
+              <Badge
+                variant="secondary"
+                className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+              >
+                -{discountPercentage}% OFF
+              </Badge>
+            </>
+          )}
+        </div>
       </div>
 
-      {/* Price */}
-      <div className="flex items-center gap-3">
-        <span className="text-3xl font-bold text-gray-900 dark:text-white">
-          {formatPrice(currentPrice)}
-        </span>
-        {hasDiscount && (
-          <>
-            <span className="text-xl text-gray-500 dark:text-gray-400 line-through">
-              {formatPrice(currentComparePrice!)}
-            </span>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-              -{discountPercentage}% OFF
-            </span>
-          </>
-        )}
-      </div>
+      {/* Size Selection */}
+      {availableSizes.length > 0 && (
+        <SizeSelector
+          sizes={availableSizes}
+          selectedSize={selectedSize}
+          onSizeSelect={handleSizeSelect}
+        />
+      )}
+
+      {/* Quantity Controls */}
+      <QuantityControls
+        quantity={quantity}
+        onQuantityChange={setQuantity}
+        maxQuantity={currentInventory || 99}
+      />
 
       {/* Stock Status */}
-      <div className="space-y-2">
-        {isOutOfStock ? (
-          <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-            <span className="font-medium">Out of Stock</span>
-          </div>
-        ) : isLowStock ? (
-          <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-            <span className="font-medium">Only {currentInventory} left in stock!</span>
-          </div>
-        ) : product.inventory.trackQuantity ? (
-          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M5 13l4 4L19 7"
-              />
-            </svg>
-            <span className="font-medium">In Stock ({currentInventory} available)</span>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Description */}
-      <div>
-        <p className="text-gray-600 dark:text-gray-300 leading-relaxed">{product.description}</p>
-      </div>
-
-      {/* Variant Options */}
-      {Object.keys(variantOptions).length > 0 && (
-        <div className="space-y-4">
-          {Object.entries(variantOptions).map(([optionName, values]) => (
-            <div key={optionName}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {optionName}
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {values.map((value) => {
-                  const isSelected = selectedVariant?.options.some(
-                    (opt) => opt.name === optionName && opt.value === value,
-                  )
-
-                  return (
-                    <button
-                      key={value}
-                      onClick={() => handleVariantChange(optionName, value)}
-                      className={cn(
-                        'px-4 py-2 text-sm font-medium rounded-md border transition-colors',
-                        isSelected
-                          ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                          : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700',
-                      )}
-                    >
-                      {value}
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+      {product.inventory?.trackQuantity && (
+        <div className="space-y-2">
+          {isOutOfStock ? (
+            <p className="text-red-600 dark:text-red-400 font-medium">Out of Stock</p>
+          ) : isLowStock ? (
+            <p className="text-orange-600 dark:text-orange-400 font-medium">
+              Low Stock - Only {currentInventory} left!
+            </p>
+          ) : (
+            <p className="text-green-600 dark:text-green-400 font-medium">In Stock</p>
+          )}
         </div>
       )}
 
-      {/* Quantity Selector */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Quantity
-        </label>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-md">
-            <button
-              onClick={() => setQuantity(Math.max(1, quantity - 1))}
-              disabled={quantity <= 1}
-              className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              -
-            </button>
-            <input
-              type="number"
-              min="1"
-              max={isOutOfStock ? 0 : currentInventory}
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-              className="w-16 px-2 py-2 text-center border-0 focus:ring-0 dark:bg-gray-800 dark:text-white"
-            />
-            <button
-              onClick={() => setQuantity(quantity + 1)}
-              disabled={
-                isOutOfStock || (product.inventory.trackQuantity && quantity >= currentInventory)
-              }
-              className="px-3 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              +
-            </button>
+      {/* Action Buttons */}
+      <div className="flex items-center gap-4 pt-4">
+        <AddToCartButton product={product as any} className="flex-1" disabled={isOutOfStock} />
+
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={toggleWishlist}
+          className={cn(
+            'h-12 w-12 rounded-lg transition-colors',
+            isWishlisted
+              ? 'text-red-500 border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+              : 'hover:border-gray-400',
+          )}
+        >
+          <Heart className={cn('h-5 w-5', isWishlisted && 'fill-current')} />
+        </Button>
+      </div>
+
+      {/* Product Features */}
+      <ProductFeatures />
+
+      {/* Categories */}
+      {product.categories && product.categories.length > 0 && (
+        <div className="pt-4">
+          <div className="flex flex-wrap gap-2">
+            {product.categories.map((category) => (
+              <Badge
+                key={typeof category === 'object' ? category.id : category}
+                variant="outline"
+                className="bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300"
+              >
+                {typeof category === 'object' ? category.title : 'Category'}
+              </Badge>
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* Add to Cart Button */}
-      <div className="pt-4">
-        <AddToCartButton
-          productId={product.id}
-          productTitle={product.title}
-          price={currentPrice}
-          variantId={selectedVariant?.id}
-          quantity={quantity}
-          disabled={isOutOfStock}
-          size="lg"
-          className="w-full"
-        />
-      </div>
-
-      {/* Product Info */}
-      <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-        <dl className="space-y-3">
-          <div className="flex justify-between">
-            <dt className="text-sm text-gray-500 dark:text-gray-400">SKU:</dt>
-            <dd className="text-sm text-gray-900 dark:text-white font-mono">
-              {selectedVariant?.sku || product.sku}
-            </dd>
-          </div>
-
-          {product.tags && product.tags.length > 0 && (
-            <div>
-              <dt className="text-sm text-gray-500 dark:text-gray-400 mb-2">Tags:</dt>
-              <dd className="flex flex-wrap gap-2">
-                {product.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                  >
-                    {tag.tag}
-                  </span>
-                ))}
-              </dd>
-            </div>
-          )}
-        </dl>
-      </div>
+      )}
     </div>
   )
 }

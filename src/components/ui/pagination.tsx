@@ -5,14 +5,32 @@ import { cn } from '@/utilities/ui'
 import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react'
 import * as React from 'react'
 
-const Pagination = ({ className, ...props }: React.ComponentProps<'nav'>) => (
-  <nav
-    aria-label="pagination"
-    className={cn('mx-auto flex w-full justify-center', className)}
-    role="navigation"
-    {...props}
-  />
-)
+// Props that should not be passed to the DOM element
+const paginationProps = [
+  'hasNextPage',
+  'hasPrevPage',
+  'currentPage',
+  'totalPages',
+  'page',
+  'limit',
+  'totalDocs',
+]
+
+const Pagination = ({ className, ...props }: React.ComponentProps<'nav'>) => {
+  // Filter out pagination-specific props to avoid DOM warnings
+  const domProps = Object.fromEntries(
+    Object.entries(props).filter(([key]) => !paginationProps.includes(key)),
+  )
+
+  return (
+    <nav
+      aria-label="pagination"
+      className={cn('mx-auto flex w-full justify-center', className)}
+      role="navigation"
+      {...domProps}
+    />
+  )
+}
 
 const PaginationContent: React.FC<
   { ref?: React.Ref<HTMLUListElement> } & React.HTMLAttributes<HTMLUListElement>

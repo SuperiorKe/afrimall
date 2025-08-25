@@ -2,33 +2,29 @@
 
 import { createContext, useContext, useState } from 'react'
 import { z } from 'zod'
+import { useCart } from '@/contexts/CartContext'
+import { 
+  contactInfoSchema, 
+  addressSchema, 
+  shippingInfoSchema,
+  type ContactInfoFormData,
+  type ShippingInfoFormData
+} from '@/lib/validation/checkout-schemas'
 
-export const contactInfoSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
-  phone: z.string().min(10, 'Please enter a valid phone number'),
-  subscribeToNewsletter: z.boolean().optional(),
-})
+// Create AddressFormData type from the schema
+type AddressFormData = z.infer<typeof addressSchema>
 
-export const addressSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  address1: z.string().min(1, 'Address is required'),
-  address2: z.string().optional(),
-  city: z.string().min(1, 'City is required'),
-  country: z.string().min(1, 'Country is required'),
-  state: z.string().min(1, 'State/Province is required'),
-  postalCode: z.string().min(3, 'Postal code is required'),
-})
-
-// Simplified payment method schema for Stripe integration
+// Payment method schema for Stripe integration
 const _paymentMethodSchema = z.object({
   saveCard: z.boolean().optional(),
+  acceptTerms: z.boolean().optional(),
+  acceptMarketing: z.boolean().optional(),
 })
 
 type CheckoutData = {
-  contactInfo: z.infer<typeof contactInfoSchema>
-  shippingAddress: z.infer<typeof addressSchema>
-  billingAddress: z.infer<typeof addressSchema>
+  contactInfo: ContactInfoFormData
+  shippingAddress: AddressFormData
+  billingAddress: AddressFormData
   paymentMethod: z.infer<typeof _paymentMethodSchema>
   shippingMethod: string
   sameAsBilling: boolean
@@ -46,11 +42,18 @@ type CheckoutContextType = {
   currentStep: number
   setCurrentStep: (step: number) => void
   formData: CheckoutData
-  updateFormData: (data: Partial<CheckoutData>) => void
+  updateFormData: (data: Partial<CheckoutData>) => Promise<void>
   // Stripe payment methods
   stripePayment: StripePaymentState
   createPaymentIntent: (amount: number, currency?: string) => Promise<boolean>
   resetPaymentState: () => void
+  // Customer management
+  createCustomer: () => Promise<string | null>
+  customerId: string | null
+
+  // Order management
+  createOrder: (paymentIntentId: string) => Promise<any>
+  orderId: string | null
 }
 
 const initialState: CheckoutData = {
@@ -65,7 +68,7 @@ const initialState: CheckoutData = {
     address1: '',
     address2: '',
     city: '',
-    country: '',
+    country: 'NG' as const,
     state: '',
     postalCode: '',
   },
@@ -75,12 +78,14 @@ const initialState: CheckoutData = {
     address1: '',
     address2: '',
     city: '',
-    country: '',
+    country: 'NG' as const,
     state: '',
     postalCode: '',
   },
   paymentMethod: {
     saveCard: false,
+    acceptTerms: false,
+    acceptMarketing: false,
   },
   shippingMethod: 'standard',
   sameAsBilling: true,
@@ -91,6 +96,8 @@ const CheckoutContext = createContext<CheckoutContextType | undefined>(undefined
 export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState<CheckoutData>(initialState)
+  const [customerId, setCustomerId] = useState<string | null>(null)
+  const [orderId, setOrderId] = useState<string | null>(null)
   const [stripePayment, setStripePayment] = useState<StripePaymentState>({
     clientSecret: null,
     paymentIntentId: null,
@@ -98,11 +105,16 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     error: null,
   })
 
-  const updateFormData = (data: Partial<CheckoutData>) => {
+  const updateFormData = async (data: Partial<CheckoutData>) => {
     setFormData((prev) => ({
       ...prev,
       ...data,
     }))
+
+    // If we're updating contact info, try to create/retrieve customer
+    if (data.contactInfo && !customerId) {
+      await createCustomer()
+    }
   }
 
   const createPaymentIntent = async (amount: number, currency = 'usd'): Promise<boolean> => {
@@ -149,6 +161,62 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const createCustomer = async (): Promise<string | null> => {
+    try {
+      const { contactInfo, shippingAddress } = formData
+
+      if (
+        !contactInfo.email ||
+        !contactInfo.phone ||
+        !shippingAddress.firstName ||
+        !shippingAddress.lastName
+      ) {
+        return null
+      }
+
+      const response = await fetch('/api/customers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: contactInfo.email,
+          phone: contactInfo.phone,
+          firstName: shippingAddress.firstName,
+          lastName: shippingAddress.lastName,
+          subscribeToNewsletter: contactInfo.subscribeToNewsletter,
+          addresses: [
+            {
+              type: 'shipping',
+              isDefault: true,
+              firstName: shippingAddress.firstName,
+              lastName: shippingAddress.lastName,
+              address1: shippingAddress.address1,
+              address2: shippingAddress.address2,
+              city: shippingAddress.city,
+              state: shippingAddress.state,
+              postalCode: shippingAddress.postalCode,
+              country: shippingAddress.country,
+            },
+          ],
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setCustomerId(data.data.id)
+        return data.data.id
+      } else {
+        console.error('Failed to create customer:', data.message)
+        return null
+      }
+    } catch (error) {
+      console.error('Error creating customer:', error)
+      return null
+    }
+  }
+
   const resetPaymentState = () => {
     setStripePayment({
       clientSecret: null,
@@ -156,6 +224,56 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       isProcessing: false,
       error: null,
     })
+  }
+
+  const createOrder = async (paymentIntentId: string): Promise<any> => {
+    try {
+      if (!customerId) {
+        throw new Error('Customer ID is required')
+      }
+
+      if (!formData.shippingAddress?.firstName) {
+        throw new Error('Shipping address is required')
+      }
+
+      const orderData = {
+        items: [], // This will be populated from cart context
+        total: 0, // This will be calculated from cart
+        currency: 'USD',
+        customer: customerId,
+        shippingAddress: formData.shippingAddress,
+        billingAddress: formData.sameAsBilling
+          ? formData.shippingAddress
+          : formData.billingAddress,
+        paymentMethod: 'credit_card',
+        paymentStatus: 'paid',
+        paymentReference: paymentIntentId,
+        stripePaymentIntentId: paymentIntentId,
+        shippingMethod: formData.shippingMethod || 'standard',
+        specialInstructions: '',
+        status: 'confirmed',
+      }
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(orderData),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create order')
+      }
+
+      const result = await response.json()
+      const newOrderId = result.data.id
+      setOrderId(newOrderId)
+      return result
+    } catch (error) {
+      console.error('Error creating order:', error)
+      throw error
+    }
   }
 
   return (
@@ -168,6 +286,10 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
         stripePayment,
         createPaymentIntent,
         resetPaymentState,
+        createCustomer,
+        customerId,
+        createOrder,
+        orderId,
       }}
     >
       {children}

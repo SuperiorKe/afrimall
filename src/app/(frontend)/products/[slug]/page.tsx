@@ -66,12 +66,21 @@ export default async function ProductPage({ params }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
           {/* Product Gallery - Left Side */}
           <div className="lg:order-1">
-            <ProductGallery images={productData.images || []} productTitle={productData.title} />
+            <ProductGallery 
+              images={(productData.images || [])
+                .filter(img => img.image != null)
+                .map(img => ({
+                  image: img.image!,
+                  alt: img.alt || productData.title,
+                  id: img.id
+                }))} 
+              productTitle={productData.title} 
+            />
           </div>
 
           {/* Product Details - Right Side */}
           <div className="lg:order-2">
-            <ProductDetail product={productData} variants={variants.docs} />
+            <ProductDetail product={productData as any} variants={variants.docs} />
           </div>
         </div>
 
@@ -95,7 +104,7 @@ export default async function ProductPage({ params }: Props) {
         {/* Related Products */}
         {relatedProducts.docs.length > 0 && (
           <div className="mb-16">
-            <RelatedProducts products={relatedProducts.docs} />
+            <RelatedProducts products={relatedProducts.docs as any} />
           </div>
         )}
       </div>

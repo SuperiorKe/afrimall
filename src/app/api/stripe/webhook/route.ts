@@ -2,7 +2,12 @@ import { NextRequest } from 'next/server'
 import { stripe } from '@/utilities/stripe'
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
-import { withErrorHandling, ApiError } from '@/utilities/apiResponse'
+import {
+  withErrorHandling,
+  ApiError,
+  createSuccessResponse,
+  createErrorResponse,
+} from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
@@ -133,6 +138,6 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     return createSuccessResponse({ received: true })
   } catch (error: any) {
     logger.error('Error processing webhook', 'API:stripe/webhook', error)
-    return createErrorResponse(500, 'WEBHOOK_PROCESSING_FAILED', 'Webhook processing failed')
+    return createErrorResponse('Webhook processing failed', 500, 'WEBHOOK_PROCESSING_FAILED')
   }
 })
