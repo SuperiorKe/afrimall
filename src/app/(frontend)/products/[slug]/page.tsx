@@ -116,18 +116,25 @@ export default async function ProductPage({ params }: Props) {
 }
 
 export async function generateStaticParams() {
-  const payload = await getPayload({ config: configPromise })
+  try {
+    const payload = await getPayload({ config: configPromise })
 
-  const products = await payload.find({
-    collection: 'products',
-    where: { status: { equals: 'active' } },
-    limit: 1000,
-    pagination: false,
-  })
+    const products = await payload.find({
+      collection: 'products',
+      where: { status: { equals: 'active' } },
+      limit: 1000,
+      pagination: false,
+    })
 
-  return products.docs.map((product) => ({
-    slug: product.slug,
-  }))
+    return products.docs.map((product) => ({
+      slug: product.slug,
+    }))
+  } catch (error) {
+    console.warn('Failed to generate static params for products during build:', error)
+    // Return empty array during build if database is not accessible
+    // This allows the build to complete and pages will be generated at runtime
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
