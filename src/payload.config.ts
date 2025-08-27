@@ -71,7 +71,7 @@ export default buildConfig({
     ? postgresAdapter({
         pool: {
           connectionString: process.env.POSTGRES_URL || process.env.SUPABASE_URL || process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false },
+          ssl: false, // Disable SSL for Supabase connection
         },
       })
     : sqliteAdapter({
