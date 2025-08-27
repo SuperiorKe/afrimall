@@ -68,26 +68,37 @@ export default buildConfig({
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db:
-    process.env.NODE_ENV === 'production'
-      ? postgresAdapter({
-          pool: {
-            connectionString:
-              process.env.POSTGRES_URL || process.env.SUPABASE_URL || process.env.DATABASE_URL,
-            ssl: {
-              rejectUnauthorized: false,
-              checkServerIdentity: () => undefined,
-              ca: undefined,
-              key: undefined,
-              cert: undefined,
-              minVersion: 'TLSv1.2',
-            },
-          },
-        })
-      : sqliteAdapter({
+    // During build time or when explicitly skipping database connection, use SQLite
+    process.env.SKIP_DATABASE_CONNECTION === 'true' || process.env.BUILD_MODE === 'true'
+      ? sqliteAdapter({
           client: {
             url: 'file:./afrimall.db',
           },
-        }),
+        })
+      : process.env.NODE_ENV === 'production' &&
+          (process.env.DATABASE_URL || process.env.DATABASE_URI)
+        ? postgresAdapter({
+            pool: {
+              connectionString:
+                process.env.POSTGRES_URL ||
+                process.env.SUPABASE_URL ||
+                process.env.DATABASE_URL ||
+                process.env.DATABASE_URI,
+              ssl: {
+                rejectUnauthorized: false,
+                checkServerIdentity: () => undefined,
+                ca: undefined,
+                key: undefined,
+                cert: undefined,
+                minVersion: 'TLSv1.2',
+              },
+            },
+          })
+        : sqliteAdapter({
+            client: {
+              url: 'file:./afrimall.db',
+            },
+          }),
   collections: [
     Media,
     Categories,
