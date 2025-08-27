@@ -26,13 +26,22 @@ import { getServerSideURL } from './utilities/getURL'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// Database configuration - supports both SQLite (dev) and PostgreSQL (prod)
+// Database configuration - Supabase PostgreSQL
 const getDatabaseAdapter = () => {
   try {
-    const databaseUrl = process.env.DATABASE_URL
+    // Debug: Log all available database-related environment variables
+    console.log('Environment check:')
+    console.log('- NODE_ENV:', process.env.NODE_ENV)
+    console.log('- POSTGRES_URL exists:', !!process.env.POSTGRES_URL)
+    console.log('- SUPABASE_URL exists:', !!process.env.SUPABASE_URL)
+    console.log('- DATABASE_URL exists:', !!process.env.DATABASE_URL)
+    
+    // Try multiple environment variable names for compatibility
+    const databaseUrl = process.env.POSTGRES_URL || process.env.SUPABASE_URL || process.env.DATABASE_URL
 
     if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
-      // PostgreSQL for production (Supabase)
+      console.log('✅ Using Supabase PostgreSQL database:', databaseUrl.substring(0, 50) + '...')
+      // Supabase PostgreSQL for production
       return postgresAdapter({
         pool: {
           connectionString: databaseUrl,
@@ -41,15 +50,17 @@ const getDatabaseAdapter = () => {
       })
     }
 
-    // SQLite for development (default)
+    // Fallback to SQLite for development if no Supabase connection
+    console.warn('❌ No Supabase database URL found, falling back to SQLite for development')
+    console.warn('Available env vars:', Object.keys(process.env).filter(key => key.includes('POSTGRES') || key.includes('SUPABASE') || key.includes('DATABASE')))
     return sqliteAdapter({
       client: {
-        url: databaseUrl || 'file:./afrimall.db',
+        url: 'file:./afrimall.db',
       },
     })
   } catch (error) {
-    console.warn('Failed to initialize database adapter during build:', error)
-    // Return a fallback adapter that won't fail during build
+    console.warn('❌ Failed to initialize Supabase database adapter:', error)
+    // Return SQLite fallback
     return sqliteAdapter({
       client: {
         url: 'file:./afrimall.db',
