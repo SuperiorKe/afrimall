@@ -1,0 +1,18 @@
+{
+  "buildCommand": "npm run build:safe",
+  "outputDirectory": ".next",
+  "framework": "nextjs",
+  "installCommand": "npm install",
+  "devCommand": "npm run dev",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production",
+    "BUILD_MODE": "true",
+    "SKIP_DATABASE_CONNECTION": "true"
+  }
+}
