@@ -27,47 +27,7 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 // Database configuration - Supabase PostgreSQL
-const getDatabaseAdapter = () => {
-  try {
-    // Debug: Log all available database-related environment variables
-    console.log('Environment check:')
-    console.log('- NODE_ENV:', process.env.NODE_ENV)
-    console.log('- POSTGRES_URL exists:', !!process.env.POSTGRES_URL)
-    console.log('- SUPABASE_URL exists:', !!process.env.SUPABASE_URL)
-    console.log('- DATABASE_URL exists:', !!process.env.DATABASE_URL)
-    
-    // Try multiple environment variable names for compatibility
-    const databaseUrl = process.env.POSTGRES_URL || process.env.SUPABASE_URL || process.env.DATABASE_URL
-
-    if (databaseUrl && databaseUrl.startsWith('postgresql://')) {
-      console.log('✅ Using Supabase PostgreSQL database:', databaseUrl.substring(0, 50) + '...')
-      // Supabase PostgreSQL for production
-      return postgresAdapter({
-        pool: {
-          connectionString: databaseUrl,
-          ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-        },
-      })
-    }
-
-    // Fallback to SQLite for development if no Supabase connection
-    console.warn('❌ No Supabase database URL found, falling back to SQLite for development')
-    console.warn('Available env vars:', Object.keys(process.env).filter(key => key.includes('POSTGRES') || key.includes('SUPABASE') || key.includes('DATABASE')))
-    return sqliteAdapter({
-      client: {
-        url: 'file:./afrimall.db',
-      },
-    })
-  } catch (error) {
-    console.warn('❌ Failed to initialize Supabase database adapter:', error)
-    // Return SQLite fallback
-    return sqliteAdapter({
-      client: {
-        url: 'file:./afrimall.db',
-      },
-    })
-  }
-}
+// The adapter is configured inline to ensure environment variables are available at build time
 
 export default buildConfig({
   admin: {
@@ -107,7 +67,18 @@ export default buildConfig({
   },
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
-  db: getDatabaseAdapter(),
+  db: process.env.NODE_ENV === 'production' 
+    ? postgresAdapter({
+        pool: {
+          connectionString: process.env.POSTGRES_URL || process.env.SUPABASE_URL || process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false },
+        },
+      })
+    : sqliteAdapter({
+        client: {
+          url: 'file:./afrimall.db',
+        },
+      }),
   collections: [
     Media,
     Categories,
