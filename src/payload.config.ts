@@ -72,8 +72,10 @@ export default buildConfig({
     process.env.NODE_ENV === 'development' ||
     process.env.SKIP_DATABASE_CONNECTION === 'true' ||
     process.env.BUILD_MODE === 'true' ||
-    process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview' ||
-    !process.env.DATABASE_URL
+    process.env.VERCEL === '1' ||
+    process.env.NEXT_PHASE === 'phase-production-build' ||
+    process.env.NEXT_PHASE === 'phase-production-export' ||
+    process.env.NEXT_PHASE === 'phase-production-server'
       ? sqliteAdapter({
           client: {
             url: 'file:./afrimall.db',
