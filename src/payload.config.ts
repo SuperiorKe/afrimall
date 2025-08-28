@@ -72,7 +72,7 @@ export default buildConfig({
     process.env.NODE_ENV === 'development' ||
     process.env.SKIP_DATABASE_CONNECTION === 'true' ||
     process.env.BUILD_MODE === 'true' ||
-    process.env.VERCEL === '1' ||
+    (process.env.VERCEL === '1' && process.env.NEXT_PHASE) || // Only during build phases
     process.env.NEXT_PHASE === 'phase-production-build' ||
     process.env.NEXT_PHASE === 'phase-production-export' ||
     process.env.NEXT_PHASE === 'phase-production-server'
