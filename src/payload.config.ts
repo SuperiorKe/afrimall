@@ -76,7 +76,7 @@ export default buildConfig({
           },
         })
       : process.env.NODE_ENV === 'production' &&
-          (process.env.DATABASE_URL || process.env.DATABASE_URI)
+          (process.env.DATABASE_URL || process.env.DATABASE_URI || process.env.POSTGRES_URL || process.env.SUPABASE_URL)
         ? postgresAdapter({
             pool: {
               connectionString:
