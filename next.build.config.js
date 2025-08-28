@@ -63,10 +63,8 @@ const nextConfig = {
 
   // Build-specific overrides
   env: {
-    BUILD_MODE: 'true',
-    SKIP_DATABASE_CONNECTION: 'true',
+    // Removed problematic build flags
   },
 }
 
 export default nextConfig
-

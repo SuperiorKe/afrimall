@@ -69,36 +69,36 @@ export default buildConfig({
   editor: defaultLexical,
   db:
     // During build time or when explicitly skipping database connection, use SQLite
-    process.env.SKIP_DATABASE_CONNECTION === 'true' || process.env.BUILD_MODE === 'true'
+    process.env.SKIP_DATABASE_CONNECTION === 'true' ||
+    process.env.BUILD_MODE === 'true' ||
+    process.env.NODE_ENV === 'development' ||
+    !(
+      process.env.DATABASE_URL ||
+      process.env.DATABASE_URI ||
+      process.env.POSTGRES_URL ||
+      process.env.SUPABASE_URL
+    )
       ? sqliteAdapter({
           client: {
             url: 'file:./afrimall.db',
           },
         })
-      : process.env.NODE_ENV === 'production' &&
-          (process.env.DATABASE_URL || process.env.DATABASE_URI || process.env.POSTGRES_URL || process.env.SUPABASE_URL)
-        ? postgresAdapter({
-            pool: {
-              connectionString:
-                process.env.POSTGRES_URL ||
-                process.env.SUPABASE_URL ||
-                process.env.DATABASE_URL ||
-                process.env.DATABASE_URI,
-              ssl: {
-                rejectUnauthorized: false,
-                checkServerIdentity: () => undefined,
-                ca: undefined,
-                key: undefined,
-                cert: undefined,
-                minVersion: 'TLSv1.2',
-              },
-            },
-          })
-        : sqliteAdapter({
-            client: {
-              url: 'file:./afrimall.db',
-            },
-          }),
+      : postgresAdapter({
+          pool: {
+            connectionString:
+              process.env.POSTGRES_URL ||
+              process.env.SUPABASE_URL ||
+              process.env.DATABASE_URL ||
+              process.env.DATABASE_URI,
+            ssl:
+              process.env.NODE_ENV === 'production'
+                ? {
+                    rejectUnauthorized: false,
+                    checkServerIdentity: () => undefined,
+                  }
+                : false,
+          },
+        }),
   collections: [
     Media,
     Categories,
