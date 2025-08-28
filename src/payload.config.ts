@@ -68,16 +68,12 @@ export default buildConfig({
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db:
-    // During build time or when explicitly skipping database connection, use SQLite
+    // During build time, ALWAYS use SQLite to avoid database connection issues
+    process.env.NODE_ENV === 'development' ||
     process.env.SKIP_DATABASE_CONNECTION === 'true' ||
     process.env.BUILD_MODE === 'true' ||
-    process.env.NODE_ENV === 'development' ||
-    !(
-      process.env.DATABASE_URL ||
-      process.env.DATABASE_URI ||
-      process.env.POSTGRES_URL ||
-      process.env.SUPABASE_URL
-    )
+    process.env.VERCEL === '1' && process.env.VERCEL_ENV === 'preview' ||
+    !process.env.DATABASE_URL
       ? sqliteAdapter({
           client: {
             url: 'file:./afrimall.db',
@@ -90,13 +86,10 @@ export default buildConfig({
               process.env.SUPABASE_URL ||
               process.env.DATABASE_URL ||
               process.env.DATABASE_URI,
-            ssl:
-              process.env.NODE_ENV === 'production'
-                ? {
-                    rejectUnauthorized: false,
-                    checkServerIdentity: () => undefined,
-                  }
-                : false,
+            ssl: {
+              rejectUnauthorized: false,
+              checkServerIdentity: () => undefined,
+            },
           },
         }),
   collections: [
