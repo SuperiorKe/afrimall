@@ -12,7 +12,7 @@ import { SearchBar } from '@/components/ecommerce/SearchBar'
 import { CartIcon } from '@/components/ecommerce/CartIcon'
 
 interface HeaderClientProps {
-  data: Header
+  data: Header | null
 }
 
 export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
