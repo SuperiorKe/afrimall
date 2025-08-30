@@ -106,13 +106,7 @@ export default buildConfig({
     PayloadPreferences,
   ],
   cors: [getServerSideURL()].filter(Boolean),
-  globals: 
-    // Skip globals during build to avoid database queries
-    process.env.SKIP_DATABASE_CONNECTION === 'true' ||
-    process.env.NODE_ENV === 'development' ||
-    process.env.VERCEL === '1'
-      ? []
-      : [Header, Footer],
+  globals: [Header, Footer], // Always include globals for proper TypeScript types
   plugins: [
     ...plugins,
     // storage-adapter-placeholder

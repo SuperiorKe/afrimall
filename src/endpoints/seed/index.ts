@@ -1,11 +1,10 @@
-import type { CollectionSlug, GlobalSlug, Payload, PayloadRequest, File } from 'payload'
+import type { CollectionSlug, Payload, PayloadRequest, File } from 'payload'
 import { afrimallCategories } from './afrimall-categories'
 import { afrimallProducts, categoryMapping } from './afrimall-products'
 import { image1 } from './image-1'
 import { image2 } from './image-2'
 
 const collections: CollectionSlug[] = ['categories', 'products', 'media']
-const globals: GlobalSlug[] = ['header', 'footer']
 
 export const seed = async ({
   payload,
@@ -75,7 +74,6 @@ export const seed = async ({
           size: image2Buffer.length,
         },
       }),
-
     ])
 
     const [image1Doc, image2Doc] = mediaResults
@@ -173,7 +171,7 @@ export const seed = async ({
     payload.logger.info('🌐 Setting up navigation...')
 
     try {
-      await payload.updateGlobal({
+      await (payload.updateGlobal as any)({
         slug: 'header',
         data: {
           navItems: [
@@ -207,7 +205,7 @@ export const seed = async ({
     }
 
     try {
-      await payload.updateGlobal({
+      await (payload.updateGlobal as any)({
         slug: 'footer',
         data: {
           navItems: [
