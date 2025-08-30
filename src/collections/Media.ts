@@ -7,6 +7,7 @@ import {
 } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { getStorageConfig } from '@/storage/s3-config'
 
 // Remove unused imports since we're using local storage for now
 
@@ -62,8 +63,13 @@ export const Media: CollectionConfig = {
     },
   ],
   upload: {
-    // Use local storage for development
-    staticDir: path.resolve(dirname, '../../public/media'),
+    // Use S3 storage in production, local storage in development
+    ...(process.env.NODE_ENV === 'production' && process.env.AWS_S3_BUCKET
+      ? {} // S3 storage will be configured via plugin
+      : {
+          // Local storage for development
+          staticDir: path.resolve(dirname, '../../public/media'),
+        }),
     adminThumbnail: 'thumbnail',
     focalPoint: true,
     imageSizes: [
