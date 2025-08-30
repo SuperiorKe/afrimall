@@ -26,7 +26,7 @@ import { getServerSideURL } from './utilities/getURL'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// Database configuration - Supabase PostgreSQL
+// Database configuration - Amazon RDS PostgreSQL
 // The adapter is configured inline to ensure environment variables are available at build time
 
 export default buildConfig({
@@ -85,7 +85,6 @@ export default buildConfig({
           pool: {
             connectionString:
               process.env.POSTGRES_URL ||
-              process.env.SUPABASE_URL ||
               process.env.DATABASE_URL ||
               process.env.DATABASE_URI,
             ssl: {

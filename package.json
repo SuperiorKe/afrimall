@@ -22,9 +22,7 @@
     "test:e2e": "cross-env NODE_OPTIONS=\"--no-deprecation --no-experimental-strip-types\" pnpm exec playwright test --config=playwright.config.ts",
     "test:int": "cross-env NODE_OPTIONS=--no-deprecation vitest run --config ./vitest.config.mts",
     "build:check": "cross-env NODE_OPTIONS=--no-deprecation next build --no-lint",
-    "test:supabase": "node scripts/test-supabase-connection.js",
     "check:db": "node scripts/check-database-type.js",
-    "monitor:supabase": "node scripts/monitor-supabase.js",
     "test:connection": "node scripts/test-connection-string.js",
     "test:hostnames": "node scripts/test-hostname-variations.js",
     "show:env": "node scripts/show-env-raw.js"
@@ -53,7 +51,6 @@
     "@radix-ui/react-slot": "^1.0.2",
     "@stripe/react-stripe-js": "^3.9.0",
     "@stripe/stripe-js": "^7.8.0",
-    "@supabase/supabase-js": "^2.56.0",
     "@types/nodemailer": "^6.4.17",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
