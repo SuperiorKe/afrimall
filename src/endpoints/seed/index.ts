@@ -36,48 +36,79 @@ export const seed = async ({
     // Seed media first (needed for product images)
     payload.logger.info('🌍 Seeding media...')
 
-    // Use local image files instead of fetching from external URLs
-    const fs = await import('fs')
-    const path = await import('path')
+    let mediaResults: any[] = []
+    let image1Doc: any = null
+    let image2Doc: any = null
 
-    const seedDir = path.join(process.cwd(), 'src', 'endpoints', 'seed')
+    try {
+      // Use local image files instead of fetching from external URLs
+      const fs = await import('fs')
+      const path = await import('path')
 
-    const [image1Buffer, image2Buffer] = await Promise.all([
-      fs.promises.readFile(path.join(seedDir, 'image-post1.webp')),
-      fs.promises.readFile(path.join(seedDir, 'image-post2.webp')),
-    ])
+      const seedDir = path.join(process.cwd(), 'src', 'endpoints', 'seed')
 
-    const mediaResults = await Promise.all([
-      payload.create({
-        collection: 'media',
-        data: {
-          ...image1,
-          alt: 'African marketplace product image 1',
-        },
-        file: {
-          name: 'image-post1.webp',
-          data: image1Buffer,
-          mimetype: 'image/webp',
-          size: image1Buffer.length,
-        },
-      }),
-      payload.create({
-        collection: 'media',
-        data: {
-          ...image2,
-          alt: 'African marketplace product image 2',
-        },
-        file: {
-          name: 'image-post2.webp',
-          data: image2Buffer,
-          mimetype: 'image/webp',
-          size: image2Buffer.length,
-        },
-      }),
-    ])
+      const [image1Buffer, image2Buffer] = await Promise.all([
+        fs.promises.readFile(path.join(seedDir, 'image-post1.webp')),
+        fs.promises.readFile(path.join(seedDir, 'image-post2.webp')),
+      ])
 
-    const [image1Doc, image2Doc] = mediaResults
-    payload.logger.info(`✅ Created ${mediaResults.length} media files`)
+      mediaResults = await Promise.all([
+        payload.create({
+          collection: 'media',
+          data: {
+            ...image1,
+            alt: 'African marketplace product image 1',
+          },
+          file: {
+            name: 'image-post1.webp',
+            data: image1Buffer,
+            mimetype: 'image/webp',
+            size: image1Buffer.length,
+          },
+        }),
+        payload.create({
+          collection: 'media',
+          data: {
+            ...image2,
+            alt: 'African marketplace product image 2',
+          },
+          file: {
+            name: 'image-post2.webp',
+            data: image2Buffer,
+            mimetype: 'image/webp',
+            size: image2Buffer.length,
+          },
+        }),
+      ])
+
+      [image1Doc, image2Doc] = mediaResults
+      payload.logger.info(`✅ Created ${mediaResults.length} media files`)
+    } catch (error) {
+      payload.logger.warn('⚠️  Could not create media files (images not available), continuing without media:', error.message)
+      // Create placeholder media entries without actual files
+      try {
+        mediaResults = await Promise.all([
+          payload.create({
+            collection: 'media',
+            data: {
+              ...image1,
+              alt: 'African marketplace product image 1 (placeholder)',
+            },
+          }),
+          payload.create({
+            collection: 'media',
+            data: {
+              ...image2,
+              alt: 'African marketplace product image 2 (placeholder)',
+            },
+          }),
+        ])
+        [image1Doc, image2Doc] = mediaResults
+        payload.logger.info(`✅ Created ${mediaResults.length} placeholder media entries`)
+      } catch (mediaError) {
+        payload.logger.warn('⚠️  Could not create placeholder media, continuing without media:', mediaError.message)
+      }
+    }
 
     // Create categories
     payload.logger.info('📂 Creating categories...')
@@ -91,7 +122,7 @@ export const seed = async ({
           collection: 'categories',
           data: {
             ...categoryData,
-            image: image1Doc.id, // Assign a default image for now
+            image: image1Doc?.id || undefined, // Assign image if available, otherwise undefined
           },
           req,
         })
