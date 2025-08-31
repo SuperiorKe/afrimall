@@ -200,6 +200,34 @@ export const seed = async ({
 
     payload.logger.info(`🛍️ Created ${createdProductsCount} products`)
 
+    // Create a default admin user if none exist
+    payload.logger.info('👤 Creating default admin user...')
+    
+    try {
+      const existingUsers = await payload.count({ collection: 'users' })
+      
+      if (existingUsers.totalDocs === 0) {
+        const adminUser = await payload.create({
+          collection: 'users',
+          data: {
+            name: 'Admin User',
+            email: 'admin@afrimall.com',
+            role: 'admin',
+            password: 'admin123', // You should change this after first login
+          },
+          req,
+        })
+        
+        payload.logger.info(`✅ Created admin user: ${adminUser.email}`)
+        payload.logger.info('⚠️  IMPORTANT: Change the default password after first login!')
+      } else {
+        payload.logger.info(`✅ Admin user already exists (${existingUsers.totalDocs} users found)`)
+      }
+    } catch (error: any) {
+      payload.logger.error('❌ Failed to create admin user:', error.message)
+      payload.logger.warn('⚠️  You may need to create a user manually to access the admin panel')
+    }
+
     // Update globals
     payload.logger.info('🌐 Setting up navigation...')
 
