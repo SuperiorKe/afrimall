@@ -81,9 +81,10 @@ export const seed = async ({
         }),
       ])
 
-      [image1Doc, image2Doc] = mediaResults
+      image1Doc = mediaResults[0]
+      image2Doc = mediaResults[1]
       payload.logger.info(`✅ Created ${mediaResults.length} media files`)
-    } catch (error) {
+    } catch (error: any) {
       payload.logger.warn('⚠️  Could not create media files (images not available), continuing without media:', error.message)
       // Create placeholder media entries without actual files
       try {
@@ -103,9 +104,10 @@ export const seed = async ({
             },
           }),
         ])
-        [image1Doc, image2Doc] = mediaResults
+        image1Doc = mediaResults[0]
+        image2Doc = mediaResults[1]
         payload.logger.info(`✅ Created ${mediaResults.length} placeholder media entries`)
-      } catch (mediaError) {
+      } catch (mediaError: any) {
         payload.logger.warn('⚠️  Could not create placeholder media, continuing without media:', mediaError.message)
       }
     }
