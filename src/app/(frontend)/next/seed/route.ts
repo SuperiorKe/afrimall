@@ -10,14 +10,26 @@ export async function POST(): Promise<Response> {
     const payload = await getPayload({ config })
     const requestHeaders = await headers()
 
-    // Check if this is initial setup (no users exist yet)
-    const userCount = await payload.count({ collection: 'users' })
-    const isInitialSetup = userCount.totalDocs === 0
+    // For initial setup, we'll try to seed directly without checking user count
+    // since the users table might not exist yet
+    let isInitialSetup = false
+    let user = null
+
+    try {
+      // Try to check if users exist, but don't fail if tables don't exist
+      const userCount = await payload.count({ collection: 'users' })
+      isInitialSetup = userCount.totalDocs === 0
+    } catch (error) {
+      // If we can't count users (tables don't exist), assume this is initial setup
+      payload.logger.info('Cannot count users - assuming initial setup')
+      isInitialSetup = true
+    }
 
     // Allow seeding without authentication during initial setup
     if (!isInitialSetup) {
       // Authenticate by passing request headers for subsequent seeding
-      const { user } = await payload.auth({ headers: requestHeaders })
+      const authResult = await payload.auth({ headers: requestHeaders })
+      user = authResult.user
 
       if (!user) {
         payload.logger.warn('Seed attempt without authentication')
@@ -36,7 +48,7 @@ export async function POST(): Promise<Response> {
     const payloadReq = isInitialSetup
       ? await createLocalReq({ user: undefined }, payload)
       : await createLocalReq(
-          { user: (await payload.auth({ headers: requestHeaders })).user || undefined },
+          { user: user || undefined },
           payload,
         )
 
@@ -45,7 +57,7 @@ export async function POST(): Promise<Response> {
     payload.logger.info('Seeding completed successfully')
     return Response.json({
       success: true,
-      message: isInitialSetup
+      message: isInitialSetup 
         ? 'Initial database setup completed! Your Afrimall database has been created.'
         : 'Database seeded successfully! Your Afrimall categories have been created.',
     })
