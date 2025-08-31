@@ -50,8 +50,9 @@ export async function POST(request: NextRequest) {
       const testCategory = await payload.create({
         collection: 'categories',
         data: {
-          name: 'Test Category',
-          description: 'Test category for schema creation'
+          title: 'Test Category',
+          description: 'Test category for schema creation',
+          status: 'active'
         }
       })
       results.categories = { success: true, message: 'Categories table created successfully', id: testCategory.id }
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       // Clean up test category
       await payload.delete({
         collection: 'categories',
-        where: { name: { equals: 'Test Category' } }
+        where: { title: { equals: 'Test Category' } }
       })
       console.log('✅ Test category cleaned up')
       
@@ -75,9 +76,10 @@ export async function POST(request: NextRequest) {
       const testProduct = await payload.create({
         collection: 'products',
         data: {
-          name: 'Test Product',
+          title: 'Test Product',
           description: 'Test product for schema creation',
-          price: 9.99
+          price: 9.99,
+          status: 'active'
         }
       })
       results.products = { success: true, message: 'Products table created successfully', id: testProduct.id }
@@ -86,7 +88,7 @@ export async function POST(request: NextRequest) {
       // Clean up test product
       await payload.delete({
         collection: 'products',
-        where: { name: { equals: 'Test Product' } }
+        where: { title: { equals: 'Test Product' } }
       })
       console.log('✅ Test product cleaned up')
       
