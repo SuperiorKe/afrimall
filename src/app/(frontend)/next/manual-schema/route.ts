@@ -3,54 +3,58 @@ import { Client } from 'pg'
 
 export async function POST(request: NextRequest) {
   let client: Client | null = null
-  
+
   try {
     console.log('🔧 Starting complete Payload CMS database schema creation...')
-    
-    const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URI
-    
+
+    const databaseUrl =
+      process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URI
+
     if (!databaseUrl) {
-      return NextResponse.json({
-        success: false,
-        error: 'No database connection string found'
-      }, { status: 500 })
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'No database connection string found',
+        },
+        { status: 500 },
+      )
     }
-    
+
     console.log('📡 Connecting to database for complete schema creation...')
-    
+
     client = new Client({
       connectionString: databaseUrl,
       ssl: {
-        rejectUnauthorized: false
-      }
+        rejectUnauthorized: false,
+      },
     })
-    
+
     await client.connect()
     console.log('✅ Database connection successful')
-    
+
     const results: any = {}
-    
+
     // Create users table with all Payload fields
     console.log('👤 Creating complete users table...')
     try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS users (
           id SERIAL PRIMARY KEY,
-          name VARCHAR(255) NOT NULL,
-          email VARCHAR(255) UNIQUE NOT NULL,
-          role VARCHAR(50) NOT NULL DEFAULT 'user',
+          name VARCHAR(500) NOT NULL,
+          email VARCHAR(500) UNIQUE NOT NULL,
+          role VARCHAR(100) NOT NULL DEFAULT 'admin',
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP,
-          reset_password_token VARCHAR(255),
+          reset_password_token VARCHAR(500),
           reset_password_expiration TIMESTAMP,
-          salt VARCHAR(255),
-          hash VARCHAR(255),
+          salt VARCHAR(500),
+          hash VARCHAR(500),
           login_attempts INTEGER DEFAULT 0,
           lock_until TIMESTAMP
         )
       `)
-      
+
       // Create users_sessions table
       await client.query(`
         CREATE TABLE IF NOT EXISTS users_sessions (
@@ -62,15 +66,17 @@ export async function POST(request: NextRequest) {
           data JSONB
         )
       `)
-      
-      results.users = { success: true, message: 'Complete users table and sessions table created successfully' }
+
+      results.users = {
+        success: true,
+        message: 'Complete users table and sessions table created successfully',
+      }
       console.log('✅ Complete users table created successfully')
-      
     } catch (error: any) {
       results.users = { success: false, error: error.message }
       console.log('❌ Failed to create users table:', error.message)
     }
-    
+
     // Create categories table with all Payload fields
     console.log('📂 Creating complete categories table...')
     try {
@@ -95,7 +101,7 @@ export async function POST(request: NextRequest) {
           deleted_at TIMESTAMP
         )
       `)
-      
+
       // Create categories_breadcrumbs relationship table
       await client.query(`
         CREATE TABLE IF NOT EXISTS categories_breadcrumbs (
@@ -107,15 +113,17 @@ export async function POST(request: NextRequest) {
           label VARCHAR(255)
         )
       `)
-      
-      results.categories = { success: true, message: 'Complete categories table and breadcrumbs table created successfully' }
+
+      results.categories = {
+        success: true,
+        message: 'Complete categories table and breadcrumbs table created successfully',
+      }
       console.log('✅ Complete categories table created successfully')
-      
     } catch (error: any) {
       results.categories = { success: false, error: error.message }
       console.log('❌ Failed to create categories table:', error.message)
     }
-    
+
     // Create products table with all Payload fields
     console.log('🛍️ Creating complete products table...')
     try {
@@ -148,7 +156,7 @@ export async function POST(request: NextRequest) {
           deleted_at TIMESTAMP
         )
       `)
-      
+
       // Create products_images relationship table
       await client.query(`
         CREATE TABLE IF NOT EXISTS products_images (
@@ -159,7 +167,7 @@ export async function POST(request: NextRequest) {
           alt VARCHAR(255)
         )
       `)
-      
+
       // Create products_tags relationship table
       await client.query(`
         CREATE TABLE IF NOT EXISTS products_tags (
@@ -169,7 +177,7 @@ export async function POST(request: NextRequest) {
           tag VARCHAR(255)
         )
       `)
-      
+
       // Create products_rels relationship table for categories
       await client.query(`
         CREATE TABLE IF NOT EXISTS products_rels (
@@ -180,15 +188,17 @@ export async function POST(request: NextRequest) {
           categories_id INTEGER REFERENCES categories(id) ON DELETE CASCADE
         )
       `)
-      
-      results.products = { success: true, message: 'Complete products table and all relationship tables created successfully' }
+
+      results.products = {
+        success: true,
+        message: 'Complete products table and all relationship tables created successfully',
+      }
       console.log('✅ Complete products table created successfully')
-      
     } catch (error: any) {
       results.products = { success: false, error: error.message }
       console.log('❌ Failed to create products table:', error.message)
     }
-    
+
     // Create media table with all Payload fields
     console.log('🌍 Creating complete media table...')
     try {
@@ -211,7 +221,7 @@ export async function POST(request: NextRequest) {
           deleted_at TIMESTAMP
         )
       `)
-      
+
       // Create media size variants tables
       await client.query(`
         ALTER TABLE media ADD COLUMN IF NOT EXISTS sizes_thumbnail_url TEXT,
@@ -257,15 +267,17 @@ export async function POST(request: NextRequest) {
         ADD COLUMN IF NOT EXISTS sizes_og_filesize INTEGER,
         ADD COLUMN IF NOT EXISTS sizes_og_filename VARCHAR(255)
       `)
-      
-      results.media = { success: true, message: 'Complete media table with all size variants created successfully' }
+
+      results.media = {
+        success: true,
+        message: 'Complete media table with all size variants created successfully',
+      }
       console.log('✅ Complete media table created successfully')
-      
     } catch (error: any) {
       results.media = { success: false, error: error.message }
       console.log('❌ Failed to create media table:', error.message)
     }
-    
+
     // Create product_categories junction table
     console.log('🔗 Creating product_categories junction table...')
     try {
@@ -277,59 +289,64 @@ export async function POST(request: NextRequest) {
           UNIQUE(product_id, category_id)
         )
       `)
-      
-      results.product_categories = { success: true, message: 'Product-categories junction table created successfully' }
+
+      results.product_categories = {
+        success: true,
+        message: 'Product-categories junction table created successfully',
+      }
       console.log('✅ Product-categories junction table created successfully')
-      
     } catch (error: any) {
       results.product_categories = { success: false, error: error.message }
       console.log('❌ Failed to create product_categories table:', error.message)
     }
-    
+
     const successfulTables = Object.values(results).filter((result: any) => result.success)
     const failedTables = Object.values(results).filter((result: any) => !result.success)
-    
+
     console.log('📊 Complete Schema Creation Summary:')
     console.log(`✅ Successfully created: ${successfulTables.length} table sets`)
     console.log(`❌ Failed to create: ${failedTables.length} table sets`)
-    
+
     if (failedTables.length === 0) {
       console.log('🎉 Complete Payload CMS database schema creation completed successfully!')
       return NextResponse.json({
         success: true,
-        message: 'Complete Payload CMS database schema creation completed successfully! All tables now exist with full field support.',
+        message:
+          'Complete Payload CMS database schema creation completed successfully! All tables now exist with full field support.',
         results,
         summary: {
           totalTableSets: Object.keys(results).length,
           successfulTableSets: successfulTables.length,
-          failedTableSets: failedTables.length
-        }
+          failedTableSets: failedTables.length,
+        },
       })
     } else {
       console.log('⚠️ Complete schema creation partially failed')
-      return NextResponse.json({
-        success: false,
-        message: 'Complete schema creation partially failed - some tables could not be created',
-        results,
-        summary: {
-          totalTableSets: Object.keys(results).length,
-          successfulTableSets: successfulTables.length,
-          failedTableSets: failedTables.length
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Complete schema creation partially failed - some tables could not be created',
+          results,
+          summary: {
+            totalTableSets: Object.keys(results).length,
+            successfulTableSets: successfulTables.length,
+            failedTableSets: failedTables.length,
+          },
+          error: 'Some tables failed to create - check the results for details',
         },
-        error: 'Some tables failed to create - check the results for details'
-      }, { status: 500 })
+        { status: 500 },
+      )
     }
-    
   } catch (error: any) {
     console.error('❌ Complete schema creation failed:', error)
-    
+
     return NextResponse.json(
       {
         success: false,
         error: error.message || 'Complete schema creation failed',
-        details: 'Check server logs for more information'
+        details: 'Check server logs for more information',
       },
-      { status: 500 }
+      { status: 500 },
     )
   } finally {
     if (client) {
