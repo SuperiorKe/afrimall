@@ -5,9 +5,8 @@ export async function POST(request: NextRequest) {
   let client: Client | null = null
   
   try {
-    console.log('🔧 Starting manual database schema creation...')
+    console.log('🔧 Starting complete Payload CMS database schema creation...')
     
-    // Get database connection string from environment
     const databaseUrl = process.env.DATABASE_URL || process.env.POSTGRES_URL || process.env.DATABASE_URI
     
     if (!databaseUrl) {
@@ -17,9 +16,8 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
     
-    console.log('📡 Connecting to database for manual schema creation...')
+    console.log('📡 Connecting to database for complete schema creation...')
     
-    // Create PostgreSQL client
     client = new Client({
       connectionString: databaseUrl,
       ssl: {
@@ -27,14 +25,13 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    // Connect to database
     await client.connect()
     console.log('✅ Database connection successful')
     
     const results: any = {}
     
-    // Create users table
-    console.log('👤 Creating users table...')
+    // Create users table with all Payload fields
+    console.log('👤 Creating complete users table...')
     try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS users (
@@ -66,25 +63,26 @@ export async function POST(request: NextRequest) {
         )
       `)
       
-      results.users = { success: true, message: 'Users table and sessions table created successfully' }
-      console.log('✅ Users table created successfully')
+      results.users = { success: true, message: 'Complete users table and sessions table created successfully' }
+      console.log('✅ Complete users table created successfully')
       
     } catch (error: any) {
       results.users = { success: false, error: error.message }
       console.log('❌ Failed to create users table:', error.message)
     }
     
-    // Create categories table
-    console.log('📂 Creating categories table...')
+    // Create categories table with all Payload fields
+    console.log('📂 Creating complete categories table...')
     try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS categories (
           id SERIAL PRIMARY KEY,
           title VARCHAR(255) NOT NULL,
           slug VARCHAR(255) UNIQUE NOT NULL,
+          slug_lock BOOLEAN DEFAULT false,
           description TEXT,
-          parent INTEGER REFERENCES categories(id),
-          image INTEGER,
+          parent_id INTEGER REFERENCES categories(id),
+          image_id INTEGER,
           status VARCHAR(50) DEFAULT 'active',
           featured BOOLEAN DEFAULT false,
           sort_order INTEGER DEFAULT 0,
@@ -98,22 +96,35 @@ export async function POST(request: NextRequest) {
         )
       `)
       
-      results.categories = { success: true, message: 'Categories table created successfully' }
-      console.log('✅ Categories table created successfully')
+      // Create categories_breadcrumbs relationship table
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS categories_breadcrumbs (
+          id SERIAL PRIMARY KEY,
+          _parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+          _order INTEGER DEFAULT 0,
+          doc_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
+          url VARCHAR(255),
+          label VARCHAR(255)
+        )
+      `)
+      
+      results.categories = { success: true, message: 'Complete categories table and breadcrumbs table created successfully' }
+      console.log('✅ Complete categories table created successfully')
       
     } catch (error: any) {
       results.categories = { success: false, error: error.message }
       console.log('❌ Failed to create categories table:', error.message)
     }
     
-    // Create products table
-    console.log('🛍️ Creating products table...')
+    // Create products table with all Payload fields
+    console.log('🛍️ Creating complete products table...')
     try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS products (
           id SERIAL PRIMARY KEY,
           title VARCHAR(255) NOT NULL,
           slug VARCHAR(255) UNIQUE NOT NULL,
+          slug_lock BOOLEAN DEFAULT false,
           description TEXT NOT NULL,
           full_description JSONB,
           price DECIMAL(10,2) NOT NULL,
@@ -125,14 +136,139 @@ export async function POST(request: NextRequest) {
           inventory_low_stock_threshold INTEGER DEFAULT 5,
           status VARCHAR(50) DEFAULT 'active',
           featured BOOLEAN DEFAULT false,
-          sort_order INTEGER DEFAULT 0,
+          weight DECIMAL(8,2),
+          dimensions_length DECIMAL(8,2),
+          dimensions_width DECIMAL(8,2),
+          dimensions_height DECIMAL(8,2),
+          seo_title VARCHAR(255),
+          seo_description TEXT,
+          seo_keywords TEXT,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           deleted_at TIMESTAMP
         )
       `)
       
-      // Create product_categories junction table
+      // Create products_images relationship table
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS products_images (
+          id SERIAL PRIMARY KEY,
+          _parent_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          _order INTEGER DEFAULT 0,
+          image_id INTEGER,
+          alt VARCHAR(255)
+        )
+      `)
+      
+      // Create products_tags relationship table
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS products_tags (
+          id SERIAL PRIMARY KEY,
+          _parent_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          _order INTEGER DEFAULT 0,
+          tag VARCHAR(255)
+        )
+      `)
+      
+      // Create products_rels relationship table for categories
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS products_rels (
+          id SERIAL PRIMARY KEY,
+          parent_id INTEGER REFERENCES products(id) ON DELETE CASCADE,
+          order_index INTEGER DEFAULT 0,
+          path VARCHAR(255),
+          categories_id INTEGER REFERENCES categories(id) ON DELETE CASCADE
+        )
+      `)
+      
+      results.products = { success: true, message: 'Complete products table and all relationship tables created successfully' }
+      console.log('✅ Complete products table created successfully')
+      
+    } catch (error: any) {
+      results.products = { success: false, error: error.message }
+      console.log('❌ Failed to create products table:', error.message)
+    }
+    
+    // Create media table with all Payload fields
+    console.log('🌍 Creating complete media table...')
+    try {
+      await client.query(`
+        CREATE TABLE IF NOT EXISTS media (
+          id SERIAL PRIMARY KEY,
+          alt VARCHAR(255),
+          caption TEXT,
+          filename VARCHAR(255),
+          mime_type VARCHAR(100),
+          filesize INTEGER,
+          width INTEGER,
+          height INTEGER,
+          focal_x DECIMAL(5,2),
+          focal_y DECIMAL(5,2),
+          url TEXT,
+          thumbnail_u_r_l TEXT,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          deleted_at TIMESTAMP
+        )
+      `)
+      
+      // Create media size variants tables
+      await client.query(`
+        ALTER TABLE media ADD COLUMN IF NOT EXISTS sizes_thumbnail_url TEXT,
+        ADD COLUMN IF NOT EXISTS sizes_thumbnail_width INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_thumbnail_height INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_thumbnail_mime_type VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sizes_thumbnail_filesize INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_thumbnail_filename VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS sizes_square_url TEXT,
+        ADD COLUMN IF NOT EXISTS sizes_square_width INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_square_height INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_square_mime_type VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sizes_square_filesize INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_square_filename VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS sizes_small_url TEXT,
+        ADD COLUMN IF NOT EXISTS sizes_small_width INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_small_height INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_small_mime_type VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sizes_small_filesize INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_small_filename VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS sizes_medium_url TEXT,
+        ADD COLUMN IF NOT EXISTS sizes_medium_width INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_medium_height INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_medium_mime_type VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sizes_medium_filesize INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_medium_filename VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS sizes_large_url TEXT,
+        ADD COLUMN IF NOT EXISTS sizes_large_width INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_large_height INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_large_mime_type VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sizes_large_filesize INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_large_filename VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS sizes_xlarge_url TEXT,
+        ADD COLUMN IF NOT EXISTS sizes_xlarge_width INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_xlarge_height INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_xlarge_mime_type VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sizes_xlarge_filesize INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_xlarge_filename VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS sizes_og_url TEXT,
+        ADD COLUMN IF NOT EXISTS sizes_og_width INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_og_height INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_og_mime_type VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS sizes_og_filesize INTEGER,
+        ADD COLUMN IF NOT EXISTS sizes_og_filename VARCHAR(255)
+      `)
+      
+      results.media = { success: true, message: 'Complete media table with all size variants created successfully' }
+      console.log('✅ Complete media table created successfully')
+      
+    } catch (error: any) {
+      results.media = { success: false, error: error.message }
+      console.log('❌ Failed to create media table:', error.message)
+    }
+    
+    // Create product_categories junction table
+    console.log('🔗 Creating product_categories junction table...')
+    try {
       await client.query(`
         CREATE TABLE IF NOT EXISTS product_categories (
           id SERIAL PRIMARY KEY,
@@ -142,54 +278,26 @@ export async function POST(request: NextRequest) {
         )
       `)
       
-      results.products = { success: true, message: 'Products table and categories junction table created successfully' }
-      console.log('✅ Products table created successfully')
+      results.product_categories = { success: true, message: 'Product-categories junction table created successfully' }
+      console.log('✅ Product-categories junction table created successfully')
       
     } catch (error: any) {
-      results.products = { success: false, error: error.message }
-      console.log('❌ Failed to create products table:', error.message)
+      results.product_categories = { success: false, error: error.message }
+      console.log('❌ Failed to create product_categories table:', error.message)
     }
     
-    // Create media table
-    console.log('🌍 Creating media table...')
-    try {
-      await client.query(`
-        CREATE TABLE IF NOT EXISTS media (
-          id SERIAL PRIMARY KEY,
-          alt VARCHAR(255),
-          filename VARCHAR(255),
-          mime_type VARCHAR(100),
-          filesize INTEGER,
-          width INTEGER,
-          height INTEGER,
-          url TEXT,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          deleted_at TIMESTAMP
-        )
-      `)
-      
-      results.media = { success: true, message: 'Media table created successfully' }
-      console.log('✅ Media table created successfully')
-      
-    } catch (error: any) {
-      results.media = { success: false, error: error.message }
-      console.log('❌ Failed to create media table:', error.message)
-    }
-    
-    // Check overall success
     const successfulTables = Object.values(results).filter((result: any) => result.success)
     const failedTables = Object.values(results).filter((result: any) => !result.success)
     
-    console.log('📊 Manual Schema Creation Summary:')
+    console.log('📊 Complete Schema Creation Summary:')
     console.log(`✅ Successfully created: ${successfulTables.length} table sets`)
     console.log(`❌ Failed to create: ${failedTables.length} table sets`)
     
     if (failedTables.length === 0) {
-      console.log('🎉 Manual database schema creation completed successfully!')
+      console.log('🎉 Complete Payload CMS database schema creation completed successfully!')
       return NextResponse.json({
         success: true,
-        message: 'Manual database schema creation completed successfully! All tables now exist.',
+        message: 'Complete Payload CMS database schema creation completed successfully! All tables now exist with full field support.',
         results,
         summary: {
           totalTableSets: Object.keys(results).length,
@@ -198,10 +306,10 @@ export async function POST(request: NextRequest) {
         }
       })
     } else {
-      console.log('⚠️ Manual database schema creation partially failed')
+      console.log('⚠️ Complete schema creation partially failed')
       return NextResponse.json({
         success: false,
-        message: 'Manual database schema creation partially failed - some tables could not be created',
+        message: 'Complete schema creation partially failed - some tables could not be created',
         results,
         summary: {
           totalTableSets: Object.keys(results).length,
@@ -213,18 +321,17 @@ export async function POST(request: NextRequest) {
     }
     
   } catch (error: any) {
-    console.error('❌ Manual database schema creation failed:', error)
+    console.error('❌ Complete schema creation failed:', error)
     
     return NextResponse.json(
       {
         success: false,
-        error: error.message || 'Manual database schema creation failed',
+        error: error.message || 'Complete schema creation failed',
         details: 'Check server logs for more information'
       },
       { status: 500 }
     )
   } finally {
-    // Always close the connection
     if (client) {
       try {
         await client.end()
