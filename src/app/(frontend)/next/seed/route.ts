@@ -47,17 +47,14 @@ export async function POST(): Promise<Response> {
     // Create a Payload request object to pass to the Local API for transactions
     const payloadReq = isInitialSetup
       ? await createLocalReq({ user: undefined }, payload)
-      : await createLocalReq(
-          { user: user || undefined },
-          payload,
-        )
+      : await createLocalReq({ user: user || undefined }, payload)
 
     await seed({ payload, req: payloadReq })
 
     payload.logger.info('Seeding completed successfully')
     return Response.json({
       success: true,
-      message: isInitialSetup 
+      message: isInitialSetup
         ? 'Initial database setup completed! Your Afrimall database has been created.'
         : 'Database seeded successfully! Your Afrimall categories have been created.',
     })
