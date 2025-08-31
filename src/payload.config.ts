@@ -27,7 +27,17 @@ const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
 // Database configuration - Amazon RDS PostgreSQL
-// The adapter is configured inline to ensure environment variables are available at build time
+// Simplified logic to ensure PostgreSQL is used in production
+
+// Debug database configuration
+const useSQLite = process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
+const usePostgreSQL = !useSQLite
+
+console.log('🔧 Database Configuration Debug:')
+console.log('  NODE_ENV:', process.env.NODE_ENV)
+console.log('  DATABASE_URL exists:', !!process.env.DATABASE_URL)
+console.log('  Using SQLite:', useSQLite)
+console.log('  Using PostgreSQL:', usePostgreSQL)
 
 export default buildConfig({
   admin: {
@@ -68,14 +78,8 @@ export default buildConfig({
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db:
-    // During build time, ALWAYS use SQLite to avoid database connection issues
-    process.env.NODE_ENV === 'development' ||
-    process.env.SKIP_DATABASE_CONNECTION === 'true' ||
-    process.env.BUILD_MODE === 'true' ||
-    (process.env.VERCEL === '1' && process.env.NEXT_PHASE) || // Only during build phases
-    process.env.NEXT_PHASE === 'phase-production-build' ||
-    process.env.NEXT_PHASE === 'phase-production-export' ||
-    process.env.NEXT_PHASE === 'phase-production-server'
+    // Use SQLite only during build time, PostgreSQL in all other cases
+    useSQLite
       ? sqliteAdapter({
           client: {
             url: 'file:./afrimall.db',
