@@ -36,7 +36,7 @@ export async function POST(): Promise<Response> {
     const payloadReq = isInitialSetup
       ? await createLocalReq({ user: undefined }, payload)
       : await createLocalReq(
-          { user: (await payload.auth({ headers: requestHeaders })).user },
+          { user: (await payload.auth({ headers: requestHeaders })).user || undefined },
           payload,
         )
 
