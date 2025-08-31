@@ -10,28 +10,41 @@ export async function POST(): Promise<Response> {
     const payload = await getPayload({ config })
     const requestHeaders = await headers()
 
-    // Authenticate by passing request headers
-    const { user } = await payload.auth({ headers: requestHeaders })
+    // Check if this is initial setup (no users exist yet)
+    const userCount = await payload.count({ collection: 'users' })
+    const isInitialSetup = userCount.totalDocs === 0
 
-    if (!user) {
-      payload.logger.warn('Seed attempt without authentication')
-      return new Response('Action forbidden. Please log in to the admin panel first.', {
-        status: 403,
-        headers: { 'Content-Type': 'text/plain' },
-      })
+    // Allow seeding without authentication during initial setup
+    if (!isInitialSetup) {
+      // Authenticate by passing request headers for subsequent seeding
+      const { user } = await payload.auth({ headers: requestHeaders })
+
+      if (!user) {
+        payload.logger.warn('Seed attempt without authentication')
+        return new Response('Action forbidden. Please log in to the admin panel first.', {
+          status: 403,
+          headers: { 'Content-Type': 'text/plain' },
+        })
+      }
+
+      payload.logger.info(`Seeding initiated by user: ${user.email}`)
+    } else {
+      payload.logger.info('Initial database setup - seeding without authentication')
     }
 
-    payload.logger.info(`Seeding initiated by user: ${user.email}`)
-
     // Create a Payload request object to pass to the Local API for transactions
-    const payloadReq = await createLocalReq({ user }, payload)
+    const payloadReq = isInitialSetup 
+      ? await createLocalReq({ user: null }, payload)
+      : await createLocalReq({ user: (await payload.auth({ headers: requestHeaders })).user }, payload)
 
     await seed({ payload, req: payloadReq })
 
     payload.logger.info('Seeding completed successfully')
     return Response.json({
       success: true,
-      message: 'Database seeded successfully! Your Afrimall categories have been created.',
+      message: isInitialSetup 
+        ? 'Initial database setup completed! Your Afrimall database has been created.'
+        : 'Database seeded successfully! Your Afrimall categories have been created.',
     })
   } catch (e: any) {
     const errorMessage = e?.message || 'Unknown error occurred'
