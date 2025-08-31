@@ -33,14 +33,13 @@ export async function POST(request: NextRequest) {
     // Check which adapter was actually used
     console.log('📡 Database Adapter Info:')
     console.log('  Adapter type:', payload.db.constructor.name)
-    console.log('  Adapter config:', JSON.stringify(payload.db, null, 2))
     
-    // Test database connection
+    // Test database connection by trying to access a collection
     console.log('🔌 Testing database connection...')
     try {
-      // Try to get database info
-      const dbInfo = await payload.db.query('SELECT version()')
-      console.log('✅ Database query successful:', dbInfo)
+      // Try to count users to test database connection
+      const userCount = await payload.count({ collection: 'users' })
+      console.log('✅ Database connection successful - users count:', userCount.totalDocs)
       
       return NextResponse.json({
         success: true,
@@ -60,16 +59,17 @@ export async function POST(request: NextRequest) {
         },
         database: {
           connected: true,
-          queryResult: dbInfo
+          userCount: userCount.totalDocs,
+          message: 'Database connection and query successful'
         }
       })
       
     } catch (error: any) {
-      console.log('❌ Database query failed:', error.message)
+      console.log('❌ Database connection failed:', error.message)
       
       return NextResponse.json({
         success: false,
-        message: 'Configuration check completed but database query failed',
+        message: 'Configuration check completed but database connection failed',
         environment: {
           NODE_ENV: process.env.NODE_ENV,
           DATABASE_URL: !!process.env.DATABASE_URL,
@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
         },
         database: {
           connected: false,
-          error: error.message
+          error: error.message,
+          message: 'Database connection failed - check adapter configuration'
         }
       })
     }
