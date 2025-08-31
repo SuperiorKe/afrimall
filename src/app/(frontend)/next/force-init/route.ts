@@ -79,7 +79,14 @@ export async function POST(request: NextRequest) {
           title: 'Test Product',
           description: 'Test product for schema creation',
           price: 9.99,
-          status: 'active'
+          status: 'active',
+          sku: 'TEST-PROD-001',
+          inventory: {
+            trackQuantity: true,
+            quantity: 10,
+            allowBackorder: false,
+            lowStockThreshold: 5
+          }
         }
       })
       results.products = { success: true, message: 'Products table created successfully', id: testProduct.id }
@@ -88,7 +95,7 @@ export async function POST(request: NextRequest) {
       // Clean up test product
       await payload.delete({
         collection: 'products',
-        where: { title: { equals: 'Test Product' } }
+        where: { sku: { equals: 'TEST-PROD-001' } }
       })
       console.log('✅ Test product cleaned up')
       
