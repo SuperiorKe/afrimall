@@ -64,7 +64,16 @@ export async function POST(req: NextRequest) {
       
       // Import and run the seed function
       const { seed } = await import('../../../../endpoints/seed')
-      await seed({ payload })
+      
+      // Create a mock request object for the seed function
+      const mockReq = {
+        user: undefined,
+        payload,
+        locale: 'en',
+        fallbackLocale: 'en'
+      } as any
+      
+      await seed({ payload, req: mockReq })
       
       results.push({
         test: 'Database seeding',
