@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
       name: 'Test User',
       email: 'test@example.com',
       password: 'testpassword123',
-      role: 'admin'
+      role: 'admin' as const
     }
     
     console.log('🔍 Testing user creation with data:', testData)
