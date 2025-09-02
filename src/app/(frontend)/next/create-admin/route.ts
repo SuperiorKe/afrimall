@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
 
         // Force schema creation by creating a test user
         try {
+          console.log('🔧 Creating test user to force schema creation...')
           const testUser = await payload.create({
             collection: 'users',
             data: {
@@ -32,18 +33,22 @@ export async function POST(request: NextRequest) {
             },
           })
 
+          console.log('✅ Test user created successfully, cleaning up...')
+
           // Clean up test user
           await payload.delete({
             collection: 'users',
             where: { email: { equals: 'schema-test@afrimall.com' } },
           })
 
-          console.log('✅ Users table created successfully')
+          console.log('✅ Users table created and test user cleaned up')
 
           // Now try to count users again
           existingUsers = await payload.count({
             collection: 'users',
           })
+
+          console.log('✅ Users table is now accessible, count:', existingUsers.totalDocs)
         } catch (schemaError: any) {
           console.error('❌ Failed to create users table:', schemaError.message)
           return NextResponse.json(
