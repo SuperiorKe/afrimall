@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
         collection: 'products',
         data: {
           title: 'Schema Init Product',
+          description: 'Test product for schema creation',
           price: 9.99,
           status: 'active',
           sku: 'SCHEMA-INIT-001',

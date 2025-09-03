@@ -59,7 +59,9 @@ export default async function CategoriesPage() {
           <div className="flex justify-center mb-6">
             <Logo className="h-16 w-16" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Browse Categories</h1>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Browse Categories
+          </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Explore our curated collection of African products across different categories. Discover
             authentic crafts, jewelry, textiles, and more from talented African entrepreneurs.
@@ -110,8 +112,12 @@ export default async function CategoriesPage() {
                 />
               </svg>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No categories found</h3>
-            <p className="text-gray-500 dark:text-gray-400">Categories will appear here once they are added.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+              No categories found
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              Categories will appear here once they are added.
+            </p>
           </div>
         )}
       </div>
@@ -125,7 +131,9 @@ export default async function CategoriesPage() {
           <div className="flex justify-center mb-6">
             <Logo className="h-16 w-16" />
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">Browse Categories</h1>
+          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+            Browse Categories
+          </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             Explore our curated collection of African products across different categories.
           </p>

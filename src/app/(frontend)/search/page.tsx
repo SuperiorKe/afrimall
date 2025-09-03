@@ -97,7 +97,9 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
         </div>
         <div className="container">
           <div className="text-center py-16">
-            <p className="text-gray-500 dark:text-gray-400">Search results will be loaded at runtime.</p>
+            <p className="text-gray-500 dark:text-gray-400">
+              Search results will be loaded at runtime.
+            </p>
           </div>
         </div>
       </div>

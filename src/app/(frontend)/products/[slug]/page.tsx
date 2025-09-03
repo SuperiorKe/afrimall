@@ -66,15 +66,15 @@ export default async function ProductPage({ params }: Props) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
           {/* Product Gallery - Left Side */}
           <div className="lg:order-1">
-            <ProductGallery 
+            <ProductGallery
               images={(productData.images || [])
-                .filter(img => img.image != null)
-                .map(img => ({
+                .filter((img) => img.image != null)
+                .map((img) => ({
                   image: img.image!,
                   alt: img.alt || productData.title,
-                  id: img.id
-                }))} 
-              productTitle={productData.title} 
+                  id: img.id,
+                }))}
+              productTitle={productData.title}
             />
           </div>
 

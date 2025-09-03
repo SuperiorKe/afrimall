@@ -127,8 +127,8 @@ export default async function ProductsPage({ searchParams }: Props) {
                 Discover African Treasures
               </h1>
               <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-                Explore our curated collection of authentic African products, from handcrafted jewelry
-                to traditional textiles and contemporary art.
+                Explore our curated collection of authentic African products, from handcrafted
+                jewelry to traditional textiles and contemporary art.
               </p>
             </div>
           </div>
