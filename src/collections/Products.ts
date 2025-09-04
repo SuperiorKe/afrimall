@@ -10,14 +10,14 @@ export const Products: CollectionConfig = {
     create: ({ req: { user } }) => {
       // Only authenticated users with proper roles can create products
       if (!user || user.collection !== 'users') return false
-      
+
       const userData = user as any
       return ['admin', 'editor', 'super_admin'].includes(userData.role)
     },
     delete: ({ req: { user } }) => {
       // Only authenticated users with proper roles can delete products
       if (!user || user.collection !== 'users') return false
-      
+
       const userData = user as any
       return ['admin', 'editor', 'super_admin'].includes(userData.role)
     },
@@ -28,7 +28,7 @@ export const Products: CollectionConfig = {
     update: ({ req: { user } }) => {
       // Only authenticated users with proper roles can update products
       if (!user || user.collection !== 'users') return false
-      
+
       const userData = user as any
       return ['admin', 'editor', 'super_admin'].includes(userData.role)
     },
@@ -161,8 +161,27 @@ export const Products: CollectionConfig = {
       type: 'relationship',
       relationTo: 'categories',
       hasMany: true,
+      defaultValue: [],
       admin: {
         description: 'Product categories for organization and filtering',
+        isSortable: true,
+        position: 'sidebar',
+      },
+      filterOptions: {
+        status: {
+          equals: 'active',
+        },
+      },
+      hooks: {
+        beforeValidate: [
+          ({ value }) => {
+            // Ensure value is always an array
+            if (!Array.isArray(value)) {
+              return []
+            }
+            return value
+          },
+        ],
       },
     },
     {

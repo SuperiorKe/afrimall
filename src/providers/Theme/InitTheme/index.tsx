@@ -40,6 +40,8 @@ export const InitTheme: React.FC = () => {
     }
 
     document.documentElement.setAttribute('data-theme', themeToSet)
+    // Ensure the page is visible after theme is set
+    document.documentElement.style.opacity = '1'
   })();
   `,
       }}

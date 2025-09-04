@@ -105,12 +105,19 @@
 }
 
 html {
-  opacity: 0;
+  opacity: 1;
+  /* Fallback to ensure page is always visible */
+  transition: opacity 0.1s ease-in-out;
 }
 
 html[data-theme='dark'],
 html[data-theme='light'] {
-  opacity: initial;
+  opacity: 1;
+}
+
+/* Ensure page is visible even without theme attribute */
+html:not([data-theme]) {
+  opacity: 1;
 }
 
 /* Afrimall African Cultural Elements */

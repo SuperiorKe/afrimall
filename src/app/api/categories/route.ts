@@ -256,19 +256,137 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       titleFieldType: typeof (body.title || body.Title),
     })
 
+    // Check if this is a relationship dropdown request (empty or minimal data)
+    const hasTitle = body.title || body.Title
+    const hasDescription = body.description || body.Description
+    const hasStatus = body.status || body.Status
+    const bodyKeys = Object.keys(body)
+
+    // Log all incoming requests for debugging
+    logger.debug('Incoming POST request to categories API', 'API:categories', {
+      body,
+      bodyKeys,
+      hasTitle: !!hasTitle,
+      hasDescription: !!hasDescription,
+      hasStatus: !!hasStatus,
+      contentType,
+    })
+
+    // Check if this is a search/filter request (has pagination params but no category data)
+    const isSearchRequest =
+      bodyKeys.includes('depth') ||
+      bodyKeys.includes('limit') ||
+      bodyKeys.includes('page') ||
+      bodyKeys.includes('sort')
+    const hasCategoryData = hasTitle || hasDescription || hasStatus
+
+    // If this looks like a search/filter request without category data, treat it as a GET request
+    if (isSearchRequest && !hasCategoryData) {
+      logger.debug('Detected search/filter request, treating as GET request', 'API:categories', {
+        body,
+        bodyKeys,
+      })
+
+      const page = parseInt((body.page as string) || '1')
+      const limit = parseInt((body.limit as string) || '10')
+      const sort = (body.sort as string) || 'title'
+      const depth = parseInt((body.depth as string) || '0')
+
+      const existingCategories = await payload.find({
+        collection: 'categories',
+        where: {
+          status: { equals: 'active' },
+        },
+        page,
+        limit,
+        sort,
+        depth,
+      })
+
+      return createSuccessResponse(
+        existingCategories.docs,
+        200,
+        'Categories fetched for search/filter request',
+      )
+    }
+
+    // If this looks like a relationship dropdown request (no meaningful data), return existing categories
+    if (!hasTitle && !hasDescription && !hasStatus && bodyKeys.length <= 2) {
+      logger.debug(
+        'Detected relationship dropdown request, returning existing categories',
+        'API:categories',
+        {
+          body,
+          bodyKeys,
+        },
+      )
+
+      const existingCategories = await payload.find({
+        collection: 'categories',
+        where: {
+          status: { equals: 'active' },
+        },
+        limit: 100,
+        sort: 'title',
+        depth: 0,
+      })
+
+      return createSuccessResponse(
+        existingCategories.docs,
+        200,
+        'Categories fetched for relationship dropdown',
+      )
+    }
+
+    // Additional check: if the request has no meaningful data at all, return existing categories
+    if (
+      bodyKeys.length === 0 ||
+      (bodyKeys.length === 1 && bodyKeys[0] === '_payload' && !body._payload)
+    ) {
+      logger.debug('Empty request detected, returning existing categories', 'API:categories', {
+        body,
+        bodyKeys,
+      })
+
+      const existingCategories = await payload.find({
+        collection: 'categories',
+        where: {
+          status: { equals: 'active' },
+        },
+        limit: 100,
+        sort: 'title',
+        depth: 0,
+      })
+
+      return createSuccessResponse(
+        existingCategories.docs,
+        200,
+        'Categories fetched for empty request',
+      )
+    }
+
     // Normalize field names to handle case sensitivity
     const normalizedData = normalizeFieldNames(body)
-    
+
     // Filter out invalid fields that might cause validation issues
-    const validFields = ['title', 'description', 'status', 'parent', 'featured', 'sortOrder', 'slug', 'seo']
+    const validFields = [
+      'title',
+      'description',
+      'status',
+      'parent',
+      'featured',
+      'sortOrder',
+      'slug',
+      'seo',
+    ]
     const filteredData: Record<string, unknown> = {}
-    
+
     for (const [key, value] of Object.entries(normalizedData)) {
       if (validFields.includes(key)) {
         filteredData[key] = value
       }
     }
-    
+
     logger.debug('Data after normalization and filtering', 'API:categories', {
       normalizedData,
       normalizedDataKeys: Object.keys(normalizedData),
@@ -277,7 +395,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       filteredData,
       filteredDataKeys: Object.keys(filteredData),
     })
-    
+
     // Use filtered data for further processing
     const finalData = filteredData
 
@@ -315,6 +433,37 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     // Validate the data
     const validation = validateCategoryData(finalData)
     if (!validation.isValid) {
+      // Only treat as dropdown request if we have very minimal data (like empty or just _payload)
+      const isMinimalRequest = bodyKeys.length <= 1 && !finalData.title && !finalData.Title
+
+      if (isMinimalRequest) {
+        logger.debug(
+          'Validation failed but minimal request detected, treating as dropdown request',
+          'API:categories',
+          {
+            finalData,
+            validationErrors: validation.errors,
+            bodyKeys,
+          },
+        )
+
+        const existingCategories = await payload.find({
+          collection: 'categories',
+          where: {
+            status: { equals: 'active' },
+          },
+          limit: 100,
+          sort: 'title',
+          depth: 0,
+        })
+
+        return createSuccessResponse(
+          existingCategories.docs,
+          200,
+          'Categories fetched for dropdown (validation fallback)',
+        )
+      }
+
       throw new ApiError(
         `Validation failed: ${validation.errors.join(', ')}`,
         422,
@@ -368,7 +517,11 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     // Final validation check before sending to payload
     if (!finalData.title) {
-      logger.error('Title field missing after normalization', 'API:categories', new Error('Title field missing'))
+      logger.error(
+        'Title field missing after normalization',
+        'API:categories',
+        new Error('Title field missing'),
+      )
       throw new ApiError(
         'Title field is required but missing after processing',
         422,
