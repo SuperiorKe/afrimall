@@ -102,10 +102,7 @@ export const GET = withErrorHandling(
       let product = await payload.find({
         collection: 'products',
         where: {
-          and: [
-            { slug: { equals: slug } },
-            { status: { equals: 'active' } },
-          ],
+          and: [{ slug: { equals: slug } }, { status: { equals: 'active' } }],
         },
         limit: 1,
       })
@@ -115,10 +112,7 @@ export const GET = withErrorHandling(
         product = await payload.find({
           collection: 'products',
           where: {
-            and: [
-              { id: { equals: slug } },
-              { status: { equals: 'active' } },
-            ],
+            and: [{ id: { equals: slug } }, { status: { equals: 'active' } }],
           },
           limit: 1,
         })
@@ -159,26 +153,24 @@ export const PATCH = withErrorHandling(
       let existingProduct = await payload.find({
         collection: 'products',
         where: {
-          and: [
-            { slug: { equals: slug } },
-            { status: { equals: 'active' } },
-          ],
+          and: [{ slug: { equals: slug } }, { status: { equals: 'active' } }],
         },
         limit: 1,
       })
 
       // If not found by slug, try by ID (for admin operations)
       if (!existingProduct || existingProduct.docs.length === 0) {
-        existingProduct = await payload.find({
-          collection: 'products',
-          where: {
-            and: [
-              { id: { equals: slug } },
-              { status: { equals: 'active' } },
-            ],
-          },
-          limit: 1,
-        })
+        // Check if slug is a numeric ID
+        const numericId = parseInt(slug)
+        if (!isNaN(numericId)) {
+          existingProduct = await payload.find({
+            collection: 'products',
+            where: {
+              and: [{ id: { equals: numericId } }, { status: { equals: 'active' } }],
+            },
+            limit: 1,
+          })
+        }
       }
 
       if (!existingProduct || existingProduct.docs.length === 0) {
@@ -246,7 +238,11 @@ export const PATCH = withErrorHandling(
               titleInFinalBody: body.title,
             })
           } catch (parseError) {
-            logger.warn('Failed to parse _payload field for product update', 'API:products/[slug]', parseError as Error)
+            logger.warn(
+              'Failed to parse _payload field for product update',
+              'API:products/[slug]',
+              parseError as Error,
+            )
             // Continue with the original body if parsing fails
           }
         }
@@ -303,26 +299,24 @@ export const PUT = withErrorHandling(
       let existingProduct = await payload.find({
         collection: 'products',
         where: {
-          and: [
-            { slug: { equals: slug } },
-            { status: { equals: 'active' } },
-          ],
+          and: [{ slug: { equals: slug } }, { status: { equals: 'active' } }],
         },
         limit: 1,
       })
 
       // If not found by slug, try by ID (for admin operations)
       if (!existingProduct || existingProduct.docs.length === 0) {
-        existingProduct = await payload.find({
-          collection: 'products',
-          where: {
-            and: [
-              { id: { equals: slug } },
-              { status: { equals: 'active' } },
-            ],
-          },
-          limit: 1,
-        })
+        // Check if slug is a numeric ID
+        const numericId = parseInt(slug)
+        if (!isNaN(numericId)) {
+          existingProduct = await payload.find({
+            collection: 'products',
+            where: {
+              and: [{ id: { equals: numericId } }, { status: { equals: 'active' } }],
+            },
+            limit: 1,
+          })
+        }
       }
 
       if (!existingProduct || existingProduct.docs.length === 0) {
@@ -384,13 +378,21 @@ export const PUT = withErrorHandling(
             body = { ...body, ...payloadData }
             // Remove the _payload field as it's no longer needed
             delete body._payload
-            logger.debug('Body after merging _payload for product replacement', 'API:products/[slug]', {
-              finalBody: body,
-              finalBodyKeys: Object.keys(body),
-              titleInFinalBody: body.title,
-            })
+            logger.debug(
+              'Body after merging _payload for product replacement',
+              'API:products/[slug]',
+              {
+                finalBody: body,
+                finalBodyKeys: Object.keys(body),
+                titleInFinalBody: body.title,
+              },
+            )
           } catch (parseError) {
-            logger.warn('Failed to parse _payload field for product replacement', 'API:products/[slug]', parseError as Error)
+            logger.warn(
+              'Failed to parse _payload field for product replacement',
+              'API:products/[slug]',
+              parseError as Error,
+            )
             // Continue with the original body if parsing fails
           }
         }
@@ -442,31 +444,31 @@ export const DELETE = withErrorHandling(
 
     try {
       const payload = await getPayloadHMR({ config: configPromise })
+      const { searchParams } = new URL(request.url)
+      const force = searchParams.get('force') === 'true'
 
       // First find the product by slug or ID to get its ID
       let existingProduct = await payload.find({
         collection: 'products',
         where: {
-          and: [
-            { slug: { equals: slug } },
-            { status: { equals: 'active' } },
-          ],
+          and: [{ slug: { equals: slug } }, { status: { equals: 'active' } }],
         },
         limit: 1,
       })
 
       // If not found by slug, try by ID (for admin operations)
       if (!existingProduct || existingProduct.docs.length === 0) {
-        existingProduct = await payload.find({
-          collection: 'products',
-          where: {
-            and: [
-              { id: { equals: slug } },
-              { status: { equals: 'active' } },
-            ],
-          },
-          limit: 1,
-        })
+        // Check if slug is a numeric ID
+        const numericId = parseInt(slug)
+        if (!isNaN(numericId)) {
+          existingProduct = await payload.find({
+            collection: 'products',
+            where: {
+              and: [{ id: { equals: numericId } }, { status: { equals: 'active' } }],
+            },
+            limit: 1,
+          })
+        }
       }
 
       if (!existingProduct || existingProduct.docs.length === 0) {
@@ -474,12 +476,16 @@ export const DELETE = withErrorHandling(
       }
 
       const productId = existingProduct.docs[0].id
+      const product = existingProduct.docs[0]
 
       logger.info('Product found for deletion', 'API:products/[slug]', {
         productId,
         slug,
-        title: existingProduct.docs[0].title,
+        title: product.title,
       })
+
+      // TODO: Add cart and order validation in future iteration
+      // For now, allow deletion without checks to fix the immediate issue
 
       // Delete the product using its ID
       const result = await payload.delete({
@@ -493,7 +499,15 @@ export const DELETE = withErrorHandling(
         title: result.title,
       })
 
-      return createSuccessResponse(result, 200, 'Product deleted successfully')
+      return createSuccessResponse(
+        {
+          id: result.id,
+          title: result.title,
+          deletedAt: new Date().toISOString(),
+        },
+        200,
+        'Product deleted successfully',
+      )
     } catch (error) {
       if (error instanceof ApiError) {
         throw error

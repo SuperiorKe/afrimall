@@ -10,14 +10,14 @@ export const Categories: CollectionConfig = {
     create: ({ req: { user } }) => {
       // Only authenticated users with proper roles can create categories
       if (!user || user.collection !== 'users') return false
-      
+
       const userData = user as any
       return ['admin', 'editor', 'super_admin'].includes(userData.role)
     },
     delete: ({ req: { user } }) => {
       // Only authenticated users with proper roles can delete categories
       if (!user || user.collection !== 'users') return false
-      
+
       const userData = user as any
       return ['admin', 'editor', 'super_admin'].includes(userData.role)
     },
@@ -28,7 +28,7 @@ export const Categories: CollectionConfig = {
     update: ({ req: { user } }) => {
       // Only authenticated users with proper roles can update categories
       if (!user || user.collection !== 'users') return false
-      
+
       const userData = user as any
       return ['admin', 'editor', 'super_admin'].includes(userData.role)
     },

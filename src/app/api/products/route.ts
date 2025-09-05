@@ -413,4 +413,214 @@ function validateProductData(data: Record<string, unknown>): {
   }
 }
 
+// DELETE method for bulk product deletion
+export const DELETE = withErrorHandling(async (request: NextRequest) => {
+  try {
+    const payload = await getPayloadHMR({ config: configPromise })
+    const { searchParams } = new URL(request.url)
+
+    // Get product IDs from query parameters
+    const productIds = searchParams.get('ids')
+    const whereParam = searchParams.get('where')
+    const force = searchParams.get('force') === 'true'
+
+    let ids: string[] = []
+
+    // Handle different ways IDs can be passed
+    if (productIds) {
+      // Direct IDs parameter
+      ids = productIds
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+    } else if (whereParam) {
+      // Parse where parameter for bulk operations (Payload admin format)
+      try {
+        const whereObj = JSON.parse(decodeURIComponent(whereParam))
+        if (whereObj.and && whereObj.and[0] && whereObj.and[0].id && whereObj.and[0].id.in) {
+          ids = whereObj.and[0].id.in
+        }
+      } catch (parseError) {
+        logger.warn('Failed to parse where parameter', 'API:products', parseError as Error)
+      }
+    } else {
+      // Handle URL-encoded where parameters (Payload admin format)
+      // Check for where[and][0][id][in][0] pattern
+      const whereAnd0IdIn0 = searchParams.get('where[and][0][id][in][0]')
+      if (whereAnd0IdIn0) {
+        ids = [whereAnd0IdIn0]
+        // Check for additional IDs in the pattern where[and][0][id][in][1], etc.
+        let index = 1
+        while (true) {
+          const nextId = searchParams.get(`where[and][0][id][in][${index}]`)
+          if (nextId) {
+            ids.push(nextId)
+            index++
+          } else {
+            break
+          }
+        }
+      }
+    }
+
+    if (ids.length === 0) {
+      throw new ApiError('Product IDs are required for deletion', 400, 'MISSING_IDS')
+    }
+
+    logger.info('Starting bulk product deletion', 'API:products', {
+      productIds: ids,
+      force,
+      count: ids.length,
+    })
+
+    const deletedProducts = []
+    const errors = []
+    const warnings = []
+
+    // Process each product deletion
+    for (const productId of ids) {
+      try {
+        // First, check if product exists
+        const existingProduct = await payload.findByID({
+          collection: 'products',
+          id: parseInt(productId),
+        })
+
+        if (!existingProduct) {
+          errors.push(`Product with ID ${productId} not found`)
+          continue
+        }
+
+        // Check for cart items (unless force delete)
+        if (!force) {
+          const cartItems = await payload.find({
+            collection: 'shopping-cart',
+            where: {
+              'items.product': { equals: productId },
+            },
+            limit: 1,
+          })
+
+          if (cartItems.docs.length > 0) {
+            warnings.push(
+              `Product '${existingProduct.title}' is in shopping carts. Consider notifying customers.`,
+            )
+            if (!force) {
+              errors.push(
+                `Cannot delete product '${existingProduct.title}' - it is in shopping carts`,
+              )
+              continue
+            }
+          }
+
+          // Check for orders (unless force delete)
+          const orderItems = await payload.find({
+            collection: 'orders',
+            where: {
+              'items.product': { equals: productId },
+            },
+            limit: 1,
+          })
+
+          if (orderItems.docs.length > 0) {
+            warnings.push(
+              `Product '${existingProduct.title}' has been ordered. Consider archiving instead of deleting.`,
+            )
+            if (!force) {
+              errors.push(`Cannot delete product '${existingProduct.title}' - it has been ordered`)
+              continue
+            }
+          }
+        }
+
+        // If force delete and there were cart items, remove them
+        if (force) {
+          try {
+            // Find and update carts that contain this product
+            const cartsWithProduct = await payload.find({
+              collection: 'shopping-cart',
+              where: {
+                'items.product': { equals: productId },
+              },
+              limit: 1000,
+            })
+
+            for (const cart of cartsWithProduct.docs) {
+              const updatedItems = (cart.items || []).filter((item: any) => item.product !== productId)
+
+              await payload.update({
+                collection: 'shopping-cart',
+                id: cart.id,
+                data: {
+                  items: updatedItems,
+                },
+              })
+            }
+
+            if (cartsWithProduct.docs.length > 0) {
+              warnings.push(`Removed product from ${cartsWithProduct.docs.length} shopping carts`)
+            }
+          } catch (updateError) {
+            logger.error(
+              'Error updating carts after product deletion',
+              'API:products',
+              updateError as Error,
+            )
+            warnings.push(
+              `Failed to update shopping carts after deleting product '${existingProduct.title}'`,
+            )
+          }
+        }
+
+        // Delete the product
+        const deletedProduct = await payload.delete({
+          collection: 'products',
+          id: parseInt(productId),
+        })
+
+        deletedProducts.push({
+          id: deletedProduct.id,
+          title: deletedProduct.title,
+        })
+
+        logger.info('Product deleted successfully', 'API:products', {
+          productId: deletedProduct.id,
+          title: deletedProduct.title,
+        })
+      } catch (productError) {
+        logger.error(`Error deleting product ${productId}`, 'API:products', productError as Error)
+        errors.push(
+          `Failed to delete product ${productId}: ${productError instanceof Error ? productError.message : 'Unknown error'}`,
+        )
+      }
+    }
+
+    // Prepare response
+    const response = {
+      deletedCount: deletedProducts.length,
+      deletedProducts,
+      errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    }
+
+    if (errors.length > 0 && deletedProducts.length === 0) {
+      throw new ApiError(`Failed to delete products: ${errors.join('; ')}`, 400, 'DELETE_ERROR')
+    }
+
+    const message =
+      deletedProducts.length === ids.length
+        ? 'All products deleted successfully'
+        : `${deletedProducts.length} of ${ids.length} products deleted successfully`
+
+    return createSuccessResponse(response, 200, message)
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.apiError('Error deleting products', '/api/products', error as Error)
+    throw new ApiError('Failed to delete products', 500, 'DELETE_ERROR')
+  }
+})
+
 // Note: PATCH method moved to /api/products/[slug]/route.ts for individual product updates

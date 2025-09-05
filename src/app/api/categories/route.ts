@@ -550,3 +550,219 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     throw new ApiError('Failed to create category', 500, 'CREATE_ERROR')
   }
 })
+
+export const DELETE = withErrorHandling(async (request: NextRequest) => {
+  try {
+    const payload = await getPayloadHMR({ config: configPromise })
+    const { searchParams } = new URL(request.url)
+
+    // Get category IDs from query parameters
+    const categoryIds = searchParams.get('ids')
+    const whereParam = searchParams.get('where')
+    const force = searchParams.get('force') === 'true'
+
+    let ids: string[] = []
+
+    // Handle different ways IDs can be passed
+    if (categoryIds) {
+      // Direct IDs parameter
+      ids = categoryIds
+        .split(',')
+        .map((id) => id.trim())
+        .filter((id) => id.length > 0)
+    } else if (whereParam) {
+      // Parse where parameter for bulk operations (Payload admin format)
+      try {
+        const whereObj = JSON.parse(decodeURIComponent(whereParam))
+        if (whereObj.and && whereObj.and[0] && whereObj.and[0].id && whereObj.and[0].id.in) {
+          ids = whereObj.and[0].id.in
+        }
+      } catch (parseError) {
+        logger.warn('Failed to parse where parameter', 'API:categories', parseError as Error)
+      }
+    } else {
+      // Handle URL-encoded where parameters (Payload admin format)
+      // Check for where[and][0][id][in][0] pattern
+      const whereAnd0IdIn0 = searchParams.get('where[and][0][id][in][0]')
+      if (whereAnd0IdIn0) {
+        ids = [whereAnd0IdIn0]
+        // Check for additional IDs in the pattern where[and][0][id][in][1], etc.
+        let index = 1
+        while (true) {
+          const nextId = searchParams.get(`where[and][0][id][in][${index}]`)
+          if (nextId) {
+            ids.push(nextId)
+            index++
+          } else {
+            break
+          }
+        }
+      }
+    }
+
+    if (ids.length === 0) {
+      throw new ApiError('Category IDs are required for deletion', 400, 'MISSING_IDS')
+    }
+
+    logger.info('Starting bulk category deletion', 'API:categories', {
+      categoryIds: ids,
+      force,
+      count: ids.length,
+    })
+
+    const deletedCategories = []
+    const errors = []
+    const warnings = []
+
+    // Process each category deletion
+    for (const categoryId of ids) {
+      try {
+        // First, check if category exists
+        const existingCategory = await payload.findByID({
+          collection: 'categories',
+          id: categoryId,
+        })
+
+        if (!existingCategory) {
+          errors.push(`Category with ID ${categoryId} not found`)
+          continue
+        }
+
+        // Check for child categories (unless force delete)
+        if (!force) {
+          const childCategories = await payload.find({
+            collection: 'categories',
+            where: {
+              parent: { equals: categoryId },
+            },
+            limit: 1,
+          })
+
+          if (childCategories.docs.length > 0) {
+            errors.push(
+              `Cannot delete category '${existingCategory.title}' - it has child categories`,
+            )
+            continue
+          }
+
+          // Check for products in this category
+          const productsInCategory = await payload.find({
+            collection: 'products',
+            where: {
+              categories: {
+                contains: categoryId,
+              },
+            },
+            limit: 1,
+          })
+
+          if (productsInCategory.docs.length > 0) {
+            warnings.push(
+              `Category '${existingCategory.title}' has products. Consider moving them to another category first.`,
+            )
+            if (!force) {
+              errors.push(`Cannot delete category '${existingCategory.title}' - it has products`)
+              continue
+            }
+          }
+        }
+
+        // Delete the category
+        const deletedCategory = await payload.delete({
+          collection: 'categories',
+          id: categoryId,
+        })
+
+        deletedCategories.push({
+          id: deletedCategory.id,
+          title: deletedCategory.title,
+        })
+
+        logger.info('Category deleted successfully', 'API:categories', {
+          categoryId: deletedCategory.id,
+          title: deletedCategory.title,
+        })
+
+        // If force delete and there were products, move them to "Uncategorized" or remove category reference
+        if (force && existingCategory) {
+          try {
+            // Find products in this category and remove the category reference
+            const productsToUpdate = await payload.find({
+              collection: 'products',
+              where: {
+                categories: {
+                  contains: categoryId,
+                },
+              },
+              limit: 1000, // Adjust based on your needs
+            })
+
+            for (const product of productsToUpdate.docs) {
+              const updatedCategories = Array.isArray(product.categories)
+                ? product.categories.filter((cat: any) => cat !== categoryId)
+                : []
+
+              await payload.update({
+                collection: 'products',
+                id: product.id,
+                data: {
+                  categories: updatedCategories,
+                },
+              })
+            }
+
+            if (productsToUpdate.docs.length > 0) {
+              warnings.push(
+                `Removed category reference from ${productsToUpdate.docs.length} products`,
+              )
+            }
+          } catch (updateError) {
+            logger.error(
+              'Error updating products after category deletion',
+              'API:categories',
+              updateError as Error,
+            )
+            warnings.push(
+              `Failed to update products after deleting category '${existingCategory.title}'`,
+            )
+          }
+        }
+      } catch (categoryError) {
+        logger.error(
+          `Error deleting category ${categoryId}`,
+          'API:categories',
+          categoryError as Error,
+        )
+        errors.push(
+          `Failed to delete category ${categoryId}: ${categoryError instanceof Error ? categoryError.message : 'Unknown error'}`,
+        )
+      }
+    }
+
+    // Prepare response
+    const response = {
+      deletedCount: deletedCategories.length,
+      deletedCategories,
+      errors: errors.length > 0 ? errors : undefined,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    }
+
+    if (errors.length > 0 && deletedCategories.length === 0) {
+      throw new ApiError(`Failed to delete categories: ${errors.join('; ')}`, 400, 'DELETE_ERROR')
+    }
+
+    const message =
+      deletedCategories.length === ids.length
+        ? 'All categories deleted successfully'
+        : `${deletedCategories.length} of ${ids.length} categories deleted successfully`
+
+    return createSuccessResponse(response, 200, message)
+  } catch (error) {
+    if (error instanceof ApiError) {
+      throw error
+    }
+
+    logger.apiError('Error deleting categories', '/api/categories', error as Error)
+    throw new ApiError('Failed to delete categories', 500, 'DELETE_ERROR')
+  }
+})
