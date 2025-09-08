@@ -310,7 +310,7 @@ function transformCartData(cart: any) {
       title: item.product?.title,
       price: item.product?.price,
       images: item.product?.images?.map((img: any) => ({
-        url: img.image?.filename ? `/uploads/media/${img.image.filename}` : null,
+        url: img.image?.url || (img.image?.filename ? `/uploads/media/${img.image.filename}` : null),
         alt: img.alt || img.image?.alt || '',
       })) || [],
       categories: item.product?.categories?.map((cat: any) => ({

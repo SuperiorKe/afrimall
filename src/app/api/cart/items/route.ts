@@ -483,7 +483,7 @@ function transformCartData(cart: any) {
           images:
             typeof item.product === 'object'
               ? item.product.images?.map((img: any) => ({
-                  url: img.image?.filename ? `/uploads/media/${img.image.filename}` : null,
+                  url: img.image?.url || (img.image?.filename ? `/uploads/media/${img.image.filename}` : null),
                   alt: img.alt || img.image?.alt || '',
                 })) || []
               : [],

@@ -10,7 +10,6 @@ import { GenerateTitle, GenerateURL } from '@payloadcms/plugin-seo/types'
 import { FixedToolbarFeature, HeadingFeature, lexicalEditor } from '@payloadcms/richtext-lexical'
 import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
-import { s3StorageConfig } from '@/storage/s3-config'
 
 import { Product, Category } from '@/payload-types'
 import { getServerSideURL } from '@/utilities/getURL'
@@ -92,6 +91,4 @@ export const plugins: Plugin[] = [
     },
   }),
   payloadCloudPlugin(),
-  // Add S3 storage plugin for production media uploads
-  ...(process.env.NODE_ENV === 'production' && process.env.AWS_S3_BUCKET ? [s3StorageConfig] : []),
 ]

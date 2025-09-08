@@ -31,7 +31,7 @@ const dirname = path.dirname(filename)
 
 // Debug database configuration
 const useSQLite = process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
-const usePostgreSQL = !useSQLite
+const usePostgreSQL = !useSQLite && process.env.DATABASE_URL
 
 console.log('🔧 Database Configuration Debug:')
 console.log('  NODE_ENV:', process.env.NODE_ENV)
@@ -78,8 +78,8 @@ export default buildConfig({
   // This config helps us configure global or default features that the other editors can inherit
   editor: defaultLexical,
   db:
-    // Use SQLite only during build time, PostgreSQL in all other cases
-    useSQLite
+    // Use SQLite during build time or when no DATABASE_URL is provided
+    useSQLite || !process.env.DATABASE_URL
       ? sqliteAdapter({
           client: {
             url: 'file:./afrimall.db',
@@ -89,10 +89,10 @@ export default buildConfig({
           pool: {
             connectionString:
               process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.DATABASE_URI,
-            ssl: {
+            ssl: process.env.NODE_ENV === 'production' ? {
               rejectUnauthorized: false,
               checkServerIdentity: () => undefined,
-            },
+            } : false,
           },
         }),
   collections: [
