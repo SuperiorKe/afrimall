@@ -52,6 +52,8 @@ export default buildConfig({
       baseDir: path.resolve(dirname),
     },
     user: Users.slug,
+    // Enable admin panel access
+    disable: false,
     livePreview: {
       breakpoints: [
         {
@@ -110,8 +112,8 @@ export default buildConfig({
   globals: [Header, Footer], // Always include globals for proper TypeScript types
   plugins: [
     ...plugins,
-    // S3 Storage for production media uploads
-    ...(process.env.NODE_ENV === 'production' && process.env.AWS_S3_BUCKET
+    // S3 Storage for media uploads
+    ...(process.env.AWS_S3_BUCKET
       ? [
           s3Storage({
             collections: {
@@ -160,6 +162,6 @@ export default buildConfig({
   // Enhanced security configuration
   csrf: [
     'http://localhost:3000',
-    'https://your-domain.com', // Replace with your actual domain
+    'https://afrimall.vercel.app',
   ],
 })
