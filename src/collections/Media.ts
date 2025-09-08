@@ -7,9 +7,7 @@ import {
 } from '@payloadcms/richtext-lexical'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import { getStorageConfig } from '@/storage/s3-config'
-
-// Remove unused imports since we're using local storage for now
+// Media collection configuration for S3 storage
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)

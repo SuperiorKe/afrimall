@@ -1,4 +1,4 @@
-// storage-adapter-import-placeholder
+import { s3Storage } from '@payloadcms/storage-s3'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { postgresAdapter } from '@payloadcms/db-postgres'
 
@@ -110,7 +110,37 @@ export default buildConfig({
   globals: [Header, Footer], // Always include globals for proper TypeScript types
   plugins: [
     ...plugins,
-    // storage-adapter-placeholder
+    // S3 Storage for production media uploads
+    ...(process.env.NODE_ENV === 'production' && process.env.AWS_S3_BUCKET
+      ? [
+          s3Storage({
+            collections: {
+              media: {
+                prefix: 'media',
+                generateFileURL: ({ filename, prefix }) => {
+                  const bucket = process.env.AWS_S3_BUCKET
+                  const region = process.env.AWS_S3_REGION || 'us-east-1'
+                  const filePrefix = prefix || 'media'
+
+                  // Use CloudFront if available, otherwise S3 public URL
+                  if (process.env.AWS_CLOUDFRONT_DOMAIN) {
+                    return `https://${process.env.AWS_CLOUDFRONT_DOMAIN}/${filePrefix}/${filename}`
+                  }
+                  return `https://${bucket}.s3.${region}.amazonaws.com/${filePrefix}/${filename}`
+                },
+              },
+            },
+            bucket: process.env.AWS_S3_BUCKET,
+            config: {
+              region: process.env.AWS_S3_REGION || 'us-east-1',
+              credentials: {
+                accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID || '',
+                secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY || '',
+              },
+            },
+          }),
+        ]
+      : []),
   ],
   secret: process.env.PAYLOAD_SECRET || 'your-secret-key-here',
   sharp,

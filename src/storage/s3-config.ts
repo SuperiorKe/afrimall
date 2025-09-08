@@ -12,7 +12,10 @@ export const s3StorageConfig = s3Storage({
         const filePrefix = prefix || 'media'
 
         if (process.env.NODE_ENV === 'production') {
-          // Production: Use CloudFront or S3 public URL
+          // Production: Use CloudFront if available, otherwise S3 public URL
+          if (process.env.AWS_CLOUDFRONT_DOMAIN) {
+            return `https://${process.env.AWS_CLOUDFRONT_DOMAIN}/${filePrefix}/${filename}`
+          }
           return `https://${bucket}.s3.${region}.amazonaws.com/${filePrefix}/${filename}`
         } else {
           // Development: Use local storage
