@@ -138,7 +138,6 @@ export default buildConfig({
                 secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY || '',
               },
             },
-            disablePayloadAccessControl: true,
           }),
         ]
       : []),
