@@ -121,7 +121,7 @@ export default buildConfig({
                   const bucket = process.env.AWS_S3_BUCKET
                   const region = process.env.AWS_S3_REGION || 'us-east-1'
                   const filePrefix = prefix || 'media'
-
+                  
                   // Use CloudFront if available, otherwise S3 public URL
                   if (process.env.AWS_CLOUDFRONT_DOMAIN) {
                     return `https://${process.env.AWS_CLOUDFRONT_DOMAIN}/${filePrefix}/${filename}`
@@ -138,6 +138,7 @@ export default buildConfig({
                 secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY || '',
               },
             },
+            disablePayloadAccessControl: true,
           }),
         ]
       : []),
