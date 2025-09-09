@@ -49,8 +49,7 @@ async function preBuild() {
 
       // Initialize database tables
       try {
-        // Set production environment and run generate:types
-        process.env.NODE_ENV = 'production'
+        // Generate types which should trigger database initialization
         await runCommand('npm', ['run', 'generate:types'])
         console.log('✅ Database schema initialized successfully')
       } catch (error) {
