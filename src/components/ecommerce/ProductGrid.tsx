@@ -127,7 +127,7 @@ export function ProductGrid({
     } finally {
       setLoading(false)
     }
-  }, [searchQuery, categoryFilter])
+  }, [searchQuery, categoryFilter, searchParams])
 
   // Handle page changes
   const handlePageChange = (page: number) => {

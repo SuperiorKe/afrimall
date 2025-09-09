@@ -119,7 +119,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         const unitPrice = product.price // Use product price as base
         const newItem = {
           product: product, // Use the full product object
-          variant: variantId ? { id: variantId } : null,
+          variant: variantId || null,
           quantity,
           unitPrice,
           totalPrice: unitPrice * quantity,
@@ -142,7 +142,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       const unitPrice = product.price // Use product price as base
       const newItem = {
         product: product, // Use the full product object
-        variant: variantId ? { id: variantId } : null,
+        variant: variantId || null,
         quantity,
         unitPrice,
         totalPrice: unitPrice * quantity,
