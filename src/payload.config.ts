@@ -112,8 +112,10 @@ export default buildConfig({
   globals: [Header, Footer], // Always include globals for proper TypeScript types
   plugins: [
     ...plugins,
-    // S3 Storage for media uploads
-    ...(process.env.AWS_S3_BUCKET
+    // S3 Storage for media uploads - only load if properly configured
+    ...(process.env.AWS_S3_BUCKET && 
+        process.env.AWS_S3_ACCESS_KEY_ID && 
+        process.env.AWS_S3_SECRET_ACCESS_KEY
       ? [
           s3Storage({
             collections: {
@@ -136,8 +138,8 @@ export default buildConfig({
             config: {
               region: process.env.AWS_S3_REGION || 'us-east-1',
               credentials: {
-                accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID || '',
-                secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY || '',
+                accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
+                secretAccessKey: process.env.AWS_S3_SECRET_ACCESS_KEY,
               },
             },
           }),

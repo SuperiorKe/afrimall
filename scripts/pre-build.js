@@ -51,6 +51,14 @@ async function preBuild() {
       try {
         await runCommand('npm', ['run', 'generate:types'])
         console.log('✅ Database schema initialized successfully')
+        
+        // Try to generate import map as well
+        try {
+          await runCommand('npm', ['run', 'generate:importmap'])
+          console.log('✅ Import map generated successfully')
+        } catch (importMapError) {
+          console.warn('⚠️  Import map generation failed:', importMapError.message)
+        }
       } catch (error) {
         console.warn(
           '⚠️  Database initialization failed, but continuing with build:',
