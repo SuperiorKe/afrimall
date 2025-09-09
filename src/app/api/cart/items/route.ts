@@ -118,11 +118,12 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         // Add new item
         const unitPrice = product.price // Use product price as base
         const newItem = {
-          product: productId,
-          variant: variantId || null,
+          product: product, // Use the full product object
+          variant: variantId ? { id: variantId } : null,
           quantity,
           unitPrice,
           totalPrice: unitPrice * quantity,
+          addedAt: new Date().toISOString(),
         }
         updatedItems = [...currentItems, newItem]
       }
@@ -140,11 +141,12 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       // Create new cart
       const unitPrice = product.price // Use product price as base
       const newItem = {
-        product: productId,
-        variant: variantId || null,
+        product: product, // Use the full product object
+        variant: variantId ? { id: variantId } : null,
         quantity,
         unitPrice,
         totalPrice: unitPrice * quantity,
+        addedAt: new Date().toISOString(),
       }
 
       cart = await payload.create({
@@ -159,8 +161,19 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       })
     }
 
-    // Transform and return cart
-    const transformedCart = transformCartData(cart)
+    // Return simple cart data for now
+    const simpleCart = {
+      id: cart.id,
+      items: cart.items || [],
+      subtotal: cart.subtotal || 0,
+      itemCount: cart.itemCount || 0,
+      currency: cart.currency || 'USD',
+      customer: cart.customer,
+      sessionId: cart.sessionId,
+      status: cart.status,
+      createdAt: cart.createdAt,
+      updatedAt: cart.updatedAt,
+    }
 
     logger.info('Item added to cart successfully', 'API:cart/items', {
       cartId: cart.id,
@@ -171,7 +184,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       sessionId,
     })
 
-    return createSuccessResponse(transformedCart, 200, 'Item added to cart successfully')
+    return createSuccessResponse(simpleCart, 200, 'Item added to cart successfully')
   } catch (error) {
     if (error instanceof ApiError) {
       throw error
