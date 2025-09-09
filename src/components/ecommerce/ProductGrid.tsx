@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ProductCard } from './ProductCard'
 import { Pagination } from '@/components/ui/pagination'
@@ -78,7 +78,7 @@ export function ProductGrid({
   const pathname = usePathname()
 
   // Fetch products from API
-  const fetchProducts = async (page: number = 1) => {
+  const fetchProducts = useCallback(async (page: number = 1) => {
     try {
       setLoading(true)
       setError(null)
@@ -127,7 +127,7 @@ export function ProductGrid({
     } finally {
       setLoading(false)
     }
-  }
+  }, [searchQuery, categoryFilter])
 
   // Handle page changes
   const handlePageChange = (page: number) => {

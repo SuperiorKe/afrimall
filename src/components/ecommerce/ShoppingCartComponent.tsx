@@ -3,6 +3,7 @@
 import React, { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { X, ShoppingBag, Trash2, Minus, Plus } from 'lucide-react'
 import { formatPrice } from '@/utilities/formatPrice'
 import { cn } from '@/utilities/ui'
 import { useCart } from '@/contexts/CartContext'
