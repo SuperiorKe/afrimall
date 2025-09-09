@@ -1,11 +1,7 @@
 import { NextRequest } from 'next/server'
 import { getPayloadHMR } from '@payloadcms/next/utilities'
 import configPromise from '@payload-config'
-import {
-  createSuccessResponse,
-  withErrorHandling,
-  ApiError,
-} from '@/utilities/apiResponse'
+import { createSuccessResponse, withErrorHandling, ApiError } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
 import { ORDER_STATUSES, generateOrderNumber } from '@/utilities/orderUtils'
 
@@ -38,17 +34,17 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     // Generate unique order number
     const orderNumber = generateOrderNumber()
-    
+
     // Create the order
     const order = await payload.create({
       collection: 'orders',
       data: {
         // Order identification
         orderNumber: orderNumber,
-        
+
         // Customer relationship
         customer: customer,
-        
+
         // Order items with proper structure
         items: items.map((item: any) => ({
           product: item.product,
@@ -163,7 +159,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const limit = parseInt(searchParams.get('limit') || '10')
     const page = parseInt(searchParams.get('page') || '1')
 
-    let where: any = {}
+    const where: any = {}
 
     if (customerId) {
       where.customer = { equals: customerId }

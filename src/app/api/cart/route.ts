@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
@@ -9,7 +9,7 @@ import type { ShoppingCartSelect } from '@/payload-types'
 // GET cart by customer ID or session ID
 export const GET = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const searchParams = request.nextUrl.searchParams
 
     const customerId = searchParams.get('customerId')
@@ -72,7 +72,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 // CREATE or UPDATE cart
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const body = await request.json()
 
     const { customerId, sessionId, items, currency = 'USD', action = 'update' } = body
@@ -116,7 +116,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     if (existingCart.docs.length > 0) {
       // Update existing cart
       const cartId = existingCart.docs[0].id
-      
+
       if (action === 'clear') {
         // Clear cart
         cart = await payload.update({
@@ -179,7 +179,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 // DELETE cart (clear items)
 export const DELETE = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const searchParams = request.nextUrl.searchParams
 
     const customerId = searchParams.get('customerId')
@@ -226,7 +226,11 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
       sessionId,
     })
 
-    return createSuccessResponse({ message: 'Cart cleared successfully' }, 200, 'Cart cleared successfully')
+    return createSuccessResponse(
+      { message: 'Cart cleared successfully' },
+      200,
+      'Cart cleared successfully',
+    )
   } catch (error) {
     if (error instanceof ApiError) {
       throw error
@@ -303,31 +307,38 @@ async function validateCartItems(payload: any, items: any[]) {
 
 // Helper function to transform cart data for frontend
 function transformCartData(cart: any) {
-  const items = cart.items?.map((item: any) => ({
-    id: item.id,
-    product: {
-      id: item.product?.id,
-      title: item.product?.title,
-      price: item.product?.price,
-      images: item.product?.images?.map((img: any) => ({
-        url: img.image?.url || (img.image?.filename ? `/uploads/media/${img.image.filename}` : null),
-        alt: img.alt || img.image?.alt || '',
-      })) || [],
-      categories: item.product?.categories?.map((cat: any) => ({
-        id: cat.id,
-        title: cat.title,
-        slug: cat.slug,
-      })) || [],
-    },
-    variant: item.variant ? {
-      id: item.variant.id,
-      title: item.variant.title,
-      price: item.variant.price,
-    } : null,
-    quantity: item.quantity,
-    unitPrice: item.variant?.price || item.product?.price || 0,
-    totalPrice: (item.variant?.price || item.product?.price || 0) * item.quantity,
-  })) || []
+  const items =
+    cart.items?.map((item: any) => ({
+      id: item.id,
+      product: {
+        id: item.product?.id,
+        title: item.product?.title,
+        price: item.product?.price,
+        images:
+          item.product?.images?.map((img: any) => ({
+            url:
+              img.image?.url ||
+              (img.image?.filename ? `/uploads/media/${img.image.filename}` : null),
+            alt: img.alt || img.image?.alt || '',
+          })) || [],
+        categories:
+          item.product?.categories?.map((cat: any) => ({
+            id: cat.id,
+            title: cat.title,
+            slug: cat.slug,
+          })) || [],
+      },
+      variant: item.variant
+        ? {
+            id: item.variant.id,
+            title: item.variant.title,
+            price: item.variant.price,
+          }
+        : null,
+      quantity: item.quantity,
+      unitPrice: item.variant?.price || item.product?.price || 0,
+      totalPrice: (item.variant?.price || item.product?.price || 0) * item.quantity,
+    })) || []
 
   const subtotal = items.reduce((sum: number, item: any) => sum + item.totalPrice, 0)
   const itemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0)

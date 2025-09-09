@@ -22,6 +22,9 @@ type Props = {
   searchParams: Promise<SearchParams>
 }
 
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
 export default async function ProductsPage({ searchParams }: Props) {
   try {
     const params = await searchParams

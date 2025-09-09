@@ -142,7 +142,7 @@ export function ProductGrid({
     if (!initialProducts.length) {
       fetchProducts(1)
     }
-  }, [searchQuery, categoryFilter])
+  }, [searchQuery, categoryFilter, fetchProducts, initialProducts.length])
 
   // Show loading state
   if (loading && !products.length) {

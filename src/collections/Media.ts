@@ -50,15 +50,18 @@ export const Media: CollectionConfig = {
         },
       }),
     },
+    {
+      name: 'prefix',
+      type: 'text',
+      required: false,
+      admin: {
+        description: 'Storage prefix for S3 (automatically set)',
+        readOnly: true,
+      },
+    },
   ],
   upload: {
-    // Use S3 storage in production, local storage in development
-    ...(process.env.NODE_ENV === 'production' && process.env.AWS_S3_BUCKET
-      ? {} // S3 storage will be configured via plugin
-      : {
-          // Local storage for development
-          staticDir: path.resolve(dirname, '../../public/media'),
-        }),
+    // Configure upload settings for both S3 and local storage
     adminThumbnail: 'thumbnail',
     focalPoint: true,
     imageSizes: [
@@ -94,5 +97,11 @@ export const Media: CollectionConfig = {
         crop: 'center',
       },
     ],
+    // Use local storage for development when S3 is not configured
+    ...(process.env.NODE_ENV === 'development' && !process.env.AWS_S3_BUCKET
+      ? {
+          staticDir: path.resolve(dirname, '../../public/media'),
+        }
+      : {}),
   },
 }

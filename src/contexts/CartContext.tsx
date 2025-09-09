@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 
 export interface CartItem {
   id: string
@@ -47,7 +47,11 @@ interface CartContextType {
   error: string | null
   loadCart: () => Promise<void>
   addToCart: (productId: string, variantId?: string, quantity?: number) => Promise<boolean>
-  updateQuantity: (productId: string, variantId: string | undefined, quantity: number) => Promise<boolean>
+  updateQuantity: (
+    productId: string,
+    variantId: string | undefined,
+    quantity: number,
+  ) => Promise<boolean>
   removeFromCart: (productId: string, variantId?: string) => Promise<boolean>
   clearCart: () => Promise<void>
   refreshCart: () => void
@@ -74,7 +78,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return null
   }
 
-  const loadCart = async () => {
+  const loadCart = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -83,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const sessionId = getSessionId()
 
       const response = await fetch(
-        `/api/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`
+        `/api/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`,
       )
       const data = await response.json()
 
@@ -100,9 +104,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const addToCart = async (productId: string, variantId?: string, quantity = 1): Promise<boolean> => {
+  const addToCart = async (
+    productId: string,
+    variantId?: string,
+    quantity = 1,
+  ): Promise<boolean> => {
     try {
       setError(null)
 
@@ -145,7 +153,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = async (
     productId: string,
     variantId: string | undefined,
-    quantity: number
+    quantity: number,
   ): Promise<boolean> => {
     try {
       setError(null)
@@ -195,7 +203,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         `/api/cart/items?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}&productId=${productId}${variantId ? `&variantId=${variantId}` : ''}`,
         {
           method: 'DELETE',
-        }
+        },
       )
 
       const data = await response.json()
@@ -254,15 +262,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadCart()
-
-    // Listen for cart updates from other components
-    const handleCartUpdate = () => {
-      loadCart()
-    }
-
-    window.addEventListener('cartUpdated', handleCartUpdate)
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate)
-  }, [])
+  }, [loadCart])
 
   const value: CartContextType = {
     cart,

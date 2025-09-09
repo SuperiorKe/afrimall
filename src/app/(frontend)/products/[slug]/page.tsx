@@ -129,8 +129,21 @@ export async function generateStaticParams() {
     return products.docs.map((product) => ({
       slug: product.slug,
     }))
-  } catch (error) {
+  } catch (error: any) {
     console.warn('Failed to generate static params for products during build:', error)
+
+    // Check if it's a database table not found error
+    if (
+      error.code === '42P01' ||
+      error.message?.includes('relation') ||
+      error.message?.includes('does not exist')
+    ) {
+      console.log(
+        'ℹ️  Database tables not yet created - returning empty array for static generation',
+      )
+      console.log('ℹ️  Pages will be generated at runtime when database is ready')
+    }
+
     // Return empty array during build if database is not accessible
     // This allows the build to complete and pages will be generated at runtime
     return []

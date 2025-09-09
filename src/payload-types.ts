@@ -187,6 +187,10 @@ export interface Media {
     };
     [k: string]: unknown;
   } | null;
+  /**
+   * Storage prefix for S3 (automatically set)
+   */
+  prefix?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -1259,6 +1263,7 @@ export interface PayloadMigration {
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
   caption?: T;
+  prefix?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;

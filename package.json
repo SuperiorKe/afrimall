@@ -5,8 +5,10 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
+    "prebuild": "node scripts/pre-build.js",
     "build": "cross-env NODE_OPTIONS=--no-deprecation next build",
     "build:direct": "cross-env NODE_OPTIONS=--no-deprecation next build",
+    "build:with-db": "node scripts/build-with-db-init.js",
     "postbuild": "next-sitemap --config next-sitemap.config.cjs",
     "dev": "cross-env NODE_OPTIONS=--no-deprecation next dev",
     "dev:prod": "cross-env NODE_OPTIONS=--no-deprecation rm -rf .next && pnpm build && pnpm start",

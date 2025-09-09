@@ -13,6 +13,9 @@ type Args = {
     q: string
   }>
 }
+// Force dynamic rendering to avoid static generation issues
+export const dynamic = 'force-dynamic'
+
 export default async function Page({ searchParams: searchParamsPromise }: Args) {
   try {
     const { q: query } = await searchParamsPromise

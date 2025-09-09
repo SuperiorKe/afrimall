@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/utilities/apiResponse'
 import { logger } from '@/utilities/logger'
@@ -7,7 +7,7 @@ import { logger } from '@/utilities/logger'
 // Add item to cart
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const body = await request.json()
 
     const { customerId, sessionId, productId, variantId, quantity = 1, currency = 'USD' } = body
@@ -116,17 +116,13 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         }
       } else {
         // Add new item
+        const unitPrice = product.price // Use product price as base
         const newItem = {
           product: productId,
           variant: variantId || null,
           quantity,
-          unitPrice: variantId
-            ? (product as any).variants?.find((v: any) => v.id === variantId)?.price || product.price
-            : product.price,
-          totalPrice:
-            (variantId
-              ? (product as any).variants?.find((v: any) => v.id === variantId)?.price || product.price
-              : product.price) * quantity,
+          unitPrice,
+          totalPrice: unitPrice * quantity,
         }
         updatedItems = [...currentItems, newItem]
       }
@@ -142,17 +138,13 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       })
     } else {
       // Create new cart
+      const unitPrice = product.price // Use product price as base
       const newItem = {
         product: productId,
         variant: variantId || null,
         quantity,
-        unitPrice: variantId
-          ? (product as any).variants?.find((v: any) => v.id === variantId)?.price || product.price
-          : product.price,
-        totalPrice:
-          (variantId
-            ? (product as any).variants?.find((v: any) => v.id === variantId)?.price || product.price
-            : product.price) * quantity,
+        unitPrice,
+        totalPrice: unitPrice * quantity,
       }
 
       cart = await payload.create({
@@ -193,7 +185,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 // Update cart item quantity
 export const PUT = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const body = await request.json()
 
     const { customerId, sessionId, productId, variantId, quantity, currency = 'USD' } = body
@@ -317,7 +309,7 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
 // Remove item from cart
 export const DELETE = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const searchParams = request.nextUrl.searchParams
 
     const customerId = searchParams.get('customerId')
@@ -483,7 +475,9 @@ function transformCartData(cart: any) {
           images:
             typeof item.product === 'object'
               ? item.product.images?.map((img: any) => ({
-                  url: img.image?.url || (img.image?.filename ? `/uploads/media/${img.image.filename}` : null),
+                  url:
+                    img.image?.url ||
+                    (img.image?.filename ? `/uploads/media/${img.image.filename}` : null),
                   alt: img.alt || img.image?.alt || '',
                 })) || []
               : [],
