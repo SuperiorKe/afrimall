@@ -47,24 +47,23 @@ async function preBuild() {
     if (isProduction && hasDatabaseUrl) {
       console.log('📊 Production environment detected with DATABASE_URL')
 
-      // Try to generate types which will also initialize the database schema
+      // Initialize database tables
       try {
+        // Set production environment and run generate:types
+        process.env.NODE_ENV = 'production'
         await runCommand('npm', ['run', 'generate:types'])
         console.log('✅ Database schema initialized successfully')
-        
-        // Try to generate import map as well
-        try {
-          await runCommand('npm', ['run', 'generate:importmap'])
-          console.log('✅ Import map generated successfully')
-        } catch (importMapError) {
-          console.warn('⚠️  Import map generation failed:', importMapError.message)
-        }
       } catch (error) {
-        console.warn(
-          '⚠️  Database initialization failed, but continuing with build:',
-          error.message,
-        )
+        console.warn('⚠️  Database initialization failed:', error.message)
         console.log('ℹ️  Database tables will be created on first application startup')
+      }
+      
+      // Generate import map
+      try {
+        await runCommand('npm', ['run', 'generate:importmap'])
+        console.log('✅ Import map generated successfully')
+      } catch (importMapError) {
+        console.warn('⚠️  Import map generation failed:', importMapError.message)
       }
     } else {
       console.log(
