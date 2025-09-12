@@ -379,12 +379,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
+- **Phone**: +1 (507) 429-7272
 - **Issues**: [GitHub Issues](https://github.com/yourusername/afrimall/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/afrimall/discussions)
 - **Email**: support@afrimall.com
+- **Social Media**: 
+  - [Instagram](https://www.instagram.com/afrimall_/) @afrimall_
+  - [TikTok](https://www.tiktok.com/@afrimall_) @afrimall_
+  - [Facebook](https://www.facebook.com/p/Afrimall-100061118447014/)
 
 ---
 
 **Afrimall** - Empowering African commerce through modern technology 🚀
 
 *Built with ❤️ for the African market*
+
+## 👨‍💻 Developer
+
+**Kenn Macharia** - [LinkedIn](https://www.linkedin.com/in/kenn-macharia/) | Superior Development

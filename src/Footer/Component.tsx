@@ -31,15 +31,33 @@ export async function Footer() {
                 Supporting African artisans and connecting cultures worldwide.
               </p>
               <div className="flex space-x-4">
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                <a
+                  href="https://www.facebook.com/p/Afrimall-100061118447014/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on Facebook"
+                >
                   <span className="text-white text-sm font-bold">f</span>
-                </div>
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                </a>
+                <a
+                  href="https://www.tiktok.com/@afrimall_"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on TikTok"
+                >
                   <span className="text-white text-sm font-bold">t</span>
-                </div>
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                </a>
+                <a
+                  href="https://www.instagram.com/afrimall_/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on Instagram"
+                >
                   <span className="text-white text-sm font-bold">i</span>
-                </div>
+                </a>
               </div>
             </div>
 
@@ -66,6 +84,12 @@ export async function Footer() {
                 <Link href="/contact" className="hover:text-afrimall-gold transition-colors">
                   Contact Us
                 </Link>
+                <a 
+                  href="tel:+15074297272" 
+                  className="hover:text-afrimall-gold transition-colors"
+                >
+                  +1 (507) 429-7272
+                </a>
                 <Link href="/shipping" className="hover:text-afrimall-gold transition-colors">
                   Shipping Info
                 </Link>
@@ -134,15 +158,33 @@ export async function Footer() {
                 Supporting African artisans and connecting cultures worldwide.
               </p>
               <div className="flex space-x-4">
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                <a
+                  href="https://www.facebook.com/p/Afrimall-100061118447014/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on Facebook"
+                >
                   <span className="text-white text-sm font-bold">f</span>
-                </div>
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                </a>
+                <a
+                  href="https://www.tiktok.com/@afrimall_"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on TikTok"
+                >
                   <span className="text-white text-sm font-bold">t</span>
-                </div>
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                </a>
+                <a
+                  href="https://www.instagram.com/afrimall_/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on Instagram"
+                >
                   <span className="text-white text-sm font-bold">i</span>
-                </div>
+                </a>
               </div>
             </div>
 
@@ -169,6 +211,12 @@ export async function Footer() {
                 <Link href="/contact" className="hover:text-afrimall-gold transition-colors">
                   Contact Us
                 </Link>
+                <a 
+                  href="tel:+15074297272" 
+                  className="hover:text-afrimall-gold transition-colors"
+                >
+                  +1 (507) 429-7272
+                </a>
                 <Link href="/shipping" className="hover:text-afrimall-gold transition-colors">
                   Shipping Info
                 </Link>
@@ -207,9 +255,14 @@ export async function Footer() {
             <div className="text-center">
               <p className="text-gray-500 text-sm">
                 Built with ❤️ by{' '}
-                <span className="text-afrimall-gold font-semibold hover:text-afrimall-orange transition-colors cursor-pointer">
+                <a
+                  href="https://www.linkedin.com/in/kenn-macharia/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-afrimall-gold font-semibold hover:text-afrimall-orange transition-colors cursor-pointer"
+                >
                   Superior
-                </span>
+                </a>
               </p>
             </div>
           </div>
@@ -234,15 +287,33 @@ export async function Footer() {
                 Supporting African artisans and connecting cultures worldwide.
               </p>
               <div className="flex space-x-4">
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                <a
+                  href="https://www.facebook.com/p/Afrimall-100061118447014/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on Facebook"
+                >
                   <span className="text-white text-sm font-bold">f</span>
-                </div>
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                </a>
+                <a
+                  href="https://www.tiktok.com/@afrimall_"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on TikTok"
+                >
                   <span className="text-white text-sm font-bold">t</span>
-                </div>
-                <div className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer">
+                </a>
+                <a
+                  href="https://www.instagram.com/afrimall_/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 bg-afrimall-orange rounded-full flex items-center justify-center hover:bg-afrimall-gold transition-colors cursor-pointer"
+                  aria-label="Follow us on Instagram"
+                >
                   <span className="text-white text-sm font-bold">i</span>
-                </div>
+                </a>
               </div>
             </div>
 
@@ -269,6 +340,12 @@ export async function Footer() {
                 <Link href="/contact" className="hover:text-afrimall-gold transition-colors">
                   Contact Us
                 </Link>
+                <a 
+                  href="tel:+15074297272" 
+                  className="hover:text-afrimall-gold transition-colors"
+                >
+                  +1 (507) 429-7272
+                </a>
                 <Link href="/shipping" className="hover:text-afrimall-gold transition-colors">
                   Shipping Info
                 </Link>
@@ -307,9 +384,14 @@ export async function Footer() {
             <div className="text-center">
               <p className="text-gray-500 text-sm">
                 Built with ❤️ by{' '}
-                <span className="text-afrimall-gold font-semibold hover:text-afrimall-orange transition-colors cursor-pointer">
+                <a
+                  href="https://www.linkedin.com/in/kenn-macharia/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-afrimall-gold font-semibold hover:text-afrimall-orange transition-colors cursor-pointer"
+                >
                   Superior
-                </span>
+                </a>
               </p>
             </div>
           </div>
