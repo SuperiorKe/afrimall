@@ -1,0 +1,15 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.afrimall.com"
+        }
+      ],
+      "destination": "https://afrimall.com/$1",
+      "permanent": true
+    }
+  ]
+}

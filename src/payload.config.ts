@@ -91,10 +91,10 @@ export default buildConfig({
           pool: {
             connectionString:
               process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.DATABASE_URI,
-            ssl: process.env.NODE_ENV === 'production' ? {
+            ssl: {
               rejectUnauthorized: false,
               checkServerIdentity: () => undefined,
-            } : false,
+            },
           },
         }),
   collections: [
@@ -113,9 +113,9 @@ export default buildConfig({
   plugins: [
     ...plugins,
     // S3 Storage for media uploads - only load if properly configured
-    ...(process.env.AWS_S3_BUCKET && 
-        process.env.AWS_S3_ACCESS_KEY_ID && 
-        process.env.AWS_S3_SECRET_ACCESS_KEY
+    ...(process.env.AWS_S3_BUCKET &&
+    process.env.AWS_S3_ACCESS_KEY_ID &&
+    process.env.AWS_S3_SECRET_ACCESS_KEY
       ? [
           s3Storage({
             collections: {
@@ -125,7 +125,7 @@ export default buildConfig({
                   const bucket = process.env.AWS_S3_BUCKET
                   const region = process.env.AWS_S3_REGION || 'us-east-1'
                   const filePrefix = prefix || 'media'
-                  
+
                   // Use CloudFront if available, otherwise S3 public URL
                   if (process.env.AWS_CLOUDFRONT_DOMAIN) {
                     return `https://${process.env.AWS_CLOUDFRONT_DOMAIN}/${filePrefix}/${filename}`
@@ -163,7 +163,9 @@ export default buildConfig({
   },
   // Enhanced security configuration
   csrf: [
-    'http://localhost:3000',
+    'http://localhost:3000', 
     'https://afrimall.vercel.app',
+    'https://afrimall.com',
+    'https://www.afrimall.com'
   ],
 })
