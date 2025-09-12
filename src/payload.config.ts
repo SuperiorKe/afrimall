@@ -163,9 +163,9 @@ export default buildConfig({
   },
   // Enhanced security configuration
   csrf: [
-    'http://localhost:3000', 
+    'http://localhost:3000',
     'https://afrimall.vercel.app',
-    'https://afrimall.com',
-    'https://www.afrimall.com'
+    'https://afrimall.app',
+    'https://www.afrimall.app',
   ],
 })

@@ -1,16 +1,16 @@
-'use client';
+'use client'
 
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useCheckout } from '../CheckoutContext';
-import { ValidatedInput, ValidatedSelect, ValidatedTextarea } from '@/components/ui/validated-input';
-import { shippingInfoSchema, type ShippingInfoFormData } from '@/lib/validation/checkout-schemas';
-import { useState } from 'react';
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useCheckout } from '../CheckoutContext'
+import { ValidatedInput, ValidatedSelect, ValidatedTextarea } from '@/components/ui/validated-input'
+import { shippingInfoSchema, type ShippingInfoFormData } from '@/lib/validation/checkout-schemas'
+import { useState } from 'react'
 
 export function ShippingInfoForm() {
-  const { formData, updateFormData, setCurrentStep } = useCheckout();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
+  const { formData, updateFormData, setCurrentStep } = useCheckout()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -25,29 +25,29 @@ export function ShippingInfoForm() {
       specialInstructions: '',
     },
     mode: 'onChange',
-  });
+  })
 
   const onSubmit = async (data: ShippingInfoFormData) => {
     try {
-      setIsSubmitting(true);
-      await updateFormData({ shippingAddress: data });
-      setCurrentStep(3); // Move to billing step
+      setIsSubmitting(true)
+      await updateFormData({ shippingAddress: data })
+      // Don't automatically move to next step - let the main navigation handle it
     } catch (error) {
-      console.error('Error updating shipping info:', error);
+      console.error('Error updating shipping info:', error)
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   const handleFieldChange = async (field: keyof ShippingInfoFormData, value: any) => {
-    setValue(field, value);
-    await trigger(field);
-  };
+    setValue(field, value)
+    await trigger(field)
+  }
 
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <h2 className="text-xl font-semibold mb-6">Shipping Information</h2>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <ValidatedInput
           label="First Name"
@@ -161,34 +161,9 @@ export function ShippingInfoForm() {
         />
       </div>
 
-      <div className="mt-8 flex justify-between items-center pt-4 border-t">
-        <button
-          type="button"
-          onClick={() => setCurrentStep(1)}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-        >
-          ← Back to Contact
-        </button>
-        
-        <div className="text-sm text-gray-500">
-          Step 2 of 5 • Shipping Information
-        </div>
-        
-        <button
-          type="submit"
-          disabled={!isValid || isSubmitting}
-          className="inline-flex justify-center py-3 px-8 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isSubmitting ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Processing...
-            </>
-          ) : (
-            'Continue to Billing'
-          )}
-        </button>
+      <div className="mt-8 pt-4 border-t">
+        <div className="text-sm text-gray-500 text-center">Step 2 of 5 • Shipping Information</div>
       </div>
     </form>
-  );
+  )
 }

@@ -21,9 +21,29 @@ export function CheckoutForm() {
     { id: 5, name: 'Review', component: <OrderReview /> },
   ]
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < steps.length) {
-      setCurrentStep(currentStep + 1)
+      // Validate current step before proceeding
+      const currentStepElement = document.querySelector(`[data-step="${currentStep}"] form`)
+      if (currentStepElement) {
+        const form = currentStepElement as HTMLFormElement
+        const isValid = form.checkValidity()
+        if (isValid) {
+          // Trigger form submission to save data
+          const submitEvent = new Event('submit', { bubbles: true, cancelable: true })
+          form.dispatchEvent(submitEvent)
+
+          // Small delay to allow form submission to complete
+          setTimeout(() => {
+            setCurrentStep(currentStep + 1)
+          }, 100)
+        } else {
+          // Show validation errors
+          form.reportValidity()
+        }
+      } else {
+        setCurrentStep(currentStep + 1)
+      }
     }
   }
 
@@ -102,7 +122,9 @@ export function CheckoutForm() {
       {/* Step Content */}
       <div className="p-6 bg-gray-50 dark:bg-gray-900/50">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-100 dark:border-gray-700">
-          {steps.find((step) => step.id === currentStep)?.component}
+          <div data-step={currentStep}>
+            {steps.find((step) => step.id === currentStep)?.component}
+          </div>
         </div>
       </div>
 
@@ -128,7 +150,7 @@ export function CheckoutForm() {
               Continue to {steps.find((step) => step.id === currentStep + 1)?.name} →
             </Button>
           ) : (
-            <Button 
+            <Button
               className="bg-gradient-to-r from-afrimall-green to-green-600 hover:from-green-600 hover:to-afrimall-green text-white font-bold"
               disabled={cartLoading || !cart || cart.items.length === 0}
             >

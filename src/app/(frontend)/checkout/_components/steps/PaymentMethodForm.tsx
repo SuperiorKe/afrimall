@@ -23,7 +23,14 @@ function StripePaymentForm() {
   const [cardError, setCardError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const { register, handleSubmit, formState: { errors, isValid }, setValue, trigger } = useForm<PaymentMethodFormData>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+    setValue,
+    trigger,
+    watch,
+  } = useForm<PaymentMethodFormData>({
     resolver: zodResolver(paymentMethodSchema),
     defaultValues: {
       saveCard: false,
@@ -32,6 +39,9 @@ function StripePaymentForm() {
     },
     mode: 'onChange',
   })
+
+  // Watch form values for real-time updates
+  const watchedValues = watch()
 
   const cardElementOptions = {
     style: {
@@ -85,7 +95,7 @@ function StripePaymentForm() {
 
       if (success) {
         await updateFormData({ paymentMethod: data })
-        setCurrentStep(5) // Move to review step
+        // Don't automatically move to next step - let the main navigation handle it
       }
     } catch (error) {
       console.error('Error processing payment:', error)
@@ -122,9 +132,9 @@ function StripePaymentForm() {
 
         {/* Save card option */}
         <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-          <Checkbox 
-            id="saveCard" 
-            checked={formData.paymentMethod?.saveCard || false}
+          <Checkbox
+            id="saveCard"
+            checked={watchedValues.saveCard || false}
             onCheckedChange={(checked) => handleFieldChange('saveCard', checked)}
           />
           <Label htmlFor="saveCard" className="text-sm text-gray-700 cursor-pointer">
@@ -134,14 +144,17 @@ function StripePaymentForm() {
 
         {/* Terms and conditions */}
         <div className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-          <Checkbox 
-            id="acceptTerms" 
+          <Checkbox
+            id="acceptTerms"
             required
-            checked={formData.paymentMethod?.acceptTerms || false}
+            checked={watchedValues.acceptTerms || false}
             onCheckedChange={(checked) => handleFieldChange('acceptTerms', checked)}
           />
           <div className="flex-1">
-            <Label htmlFor="acceptTerms" className="text-sm font-medium text-blue-900 cursor-pointer">
+            <Label
+              htmlFor="acceptTerms"
+              className="text-sm font-medium text-blue-900 cursor-pointer"
+            >
               I accept the terms and conditions *
             </Label>
             <p className="text-xs text-blue-700 mt-1">
@@ -155,9 +168,9 @@ function StripePaymentForm() {
 
         {/* Marketing consent */}
         <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-          <Checkbox 
-            id="acceptMarketing" 
-            checked={formData.paymentMethod?.acceptMarketing || false}
+          <Checkbox
+            id="acceptMarketing"
+            checked={watchedValues.acceptMarketing || false}
             onCheckedChange={(checked) => handleFieldChange('acceptMarketing', checked)}
           />
           <Label htmlFor="acceptMarketing" className="text-sm text-gray-700 cursor-pointer">
@@ -173,34 +186,8 @@ function StripePaymentForm() {
         )}
       </div>
 
-      <div className="mt-8 flex justify-between items-center pt-4 border-t">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => setCurrentStep(3)}
-          className="transition-colors"
-        >
-          ← Back to Billing
-        </Button>
-        
-        <div className="text-sm text-gray-500">
-          Step 4 of 5 • Payment Method
-        </div>
-        
-        <Button 
-          type="submit" 
-          disabled={!stripe || !isCardComplete || !isValid || isSubmitting || stripePayment.isProcessing}
-          className="disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {isSubmitting || stripePayment.isProcessing ? (
-            <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Processing...
-            </>
-          ) : (
-            'Review Order'
-          )}
-        </Button>
+      <div className="mt-8 pt-4 border-t">
+        <div className="text-sm text-gray-500 text-center">Step 4 of 5 • Payment Method</div>
       </div>
     </form>
   )

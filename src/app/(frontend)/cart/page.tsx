@@ -14,7 +14,7 @@ export default function CartPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Shopping Cart</h1>
         </div>
 
-        <ShoppingCartComponent />
+        <ShoppingCartComponent asModal={false} />
       </div>
     </div>
   )
