@@ -246,17 +246,17 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
       variantId,
       currentItemsCount: currentItems.length,
       currentItems: currentItems.map((item: any) => ({
-        product: typeof item.product === 'object' ? item.product.id : item.product,
-        variant: typeof item.variant === 'object' ? item.variant.id : item.variant,
+        product: item.product && typeof item.product === 'object' ? item.product.id : item.product,
+        variant: item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant,
         quantity: item.quantity,
       })),
     })
 
     // Find item to update
     const itemIndex = currentItems.findIndex((item: any) => {
-      // Handle both populated and unpopulated relationships
-      const itemProductId = typeof item.product === 'object' ? item.product.id : item.product
-      const itemVariantId = typeof item.variant === 'object' ? item.variant.id : item.variant
+      // Handle both populated and unpopulated relationships with null checks
+      const itemProductId = item.product && typeof item.product === 'object' ? item.product.id : item.product
+      const itemVariantId = item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant
 
       // Normalize variantId for comparison (handle undefined vs null)
       const normalizedVariantId = variantId || null
@@ -369,17 +369,19 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
       variantId,
       currentItemsCount: currentItems.length,
       currentItems: currentItems.map((item: any) => ({
-        product: typeof item.product === 'object' ? item.product.id : item.product,
-        variant: typeof item.variant === 'object' ? item.variant.id : item.variant,
+        product: item.product && typeof item.product === 'object' ? item.product.id : item.product,
+        variant: item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant,
         quantity: item.quantity,
       })),
     })
 
     // Remove item
     const updatedItems = currentItems.filter((item: any) => {
-      // Handle both populated and unpopulated relationships
-      const itemProductId = typeof item.product === 'object' ? item.product.id : item.product
-      const itemVariantId = typeof item.variant === 'object' ? item.variant.id : item.variant
+      // Handle both populated and unpopulated relationships with null checks
+      const itemProductId =
+        item.product && typeof item.product === 'object' ? item.product.id : item.product
+      const itemVariantId =
+        item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant
 
       // Normalize variantId for comparison (handle undefined vs null)
       const normalizedVariantId = variantId || null
@@ -391,8 +393,8 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
     logger.info('Items after removal', 'API:cart/items', {
       updatedItemsCount: updatedItems.length,
       updatedItems: updatedItems.map((item: any) => ({
-        product: typeof item.product === 'object' ? item.product.id : item.product,
-        variant: typeof item.variant === 'object' ? item.variant.id : item.variant,
+        product: item.product && typeof item.product === 'object' ? item.product.id : item.product,
+        variant: item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant,
         quantity: item.quantity,
       })),
     })
@@ -475,18 +477,20 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
 function transformCartData(cart: any) {
   const items =
     cart.items?.map((item: any) => {
-      // Handle both populated and unpopulated relationships
-      const productId = typeof item.product === 'object' ? item.product.id : item.product
-      const variantId = typeof item.variant === 'object' ? item.variant.id : item.variant
+      // Handle both populated and unpopulated relationships with null checks
+      const productId =
+        item.product && typeof item.product === 'object' ? item.product.id : item.product
+      const variantId =
+        item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant
 
       return {
         id: item.id,
         product: {
           id: productId,
-          title: typeof item.product === 'object' ? item.product.title : undefined,
-          price: typeof item.product === 'object' ? item.product.price : undefined,
+          title: item.product && typeof item.product === 'object' ? item.product.title : undefined,
+          price: item.product && typeof item.product === 'object' ? item.product.price : undefined,
           images:
-            typeof item.product === 'object'
+            item.product && typeof item.product === 'object'
               ? item.product.images?.map((img: any) => ({
                   url:
                     img.image?.url ||
@@ -495,7 +499,7 @@ function transformCartData(cart: any) {
                 })) || []
               : [],
           categories:
-            typeof item.product === 'object'
+            item.product && typeof item.product === 'object'
               ? item.product.categories?.map((cat: any) => ({
                   id: cat.id,
                   title: cat.title,
@@ -504,7 +508,7 @@ function transformCartData(cart: any) {
               : [],
         },
         variant:
-          typeof item.variant === 'object'
+          item.variant && typeof item.variant === 'object'
             ? {
                 id: variantId,
                 title: item.variant.title,

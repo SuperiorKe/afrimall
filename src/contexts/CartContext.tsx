@@ -230,17 +230,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const customerId = getCustomerId()
       const sessionId = getSessionId()
 
-      const response = await fetch('/api/cart', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `/api/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`,
+        {
+          method: 'DELETE',
         },
-        body: JSON.stringify({
-          customerId,
-          sessionId,
-          action: 'clear',
-        }),
-      })
+      )
 
       const data = await response.json()
 
