@@ -13,16 +13,22 @@ export const metadata: Metadata = {
     'Browse all product categories on Afrimall marketplace. Find African art, crafts, jewelry, textiles, and more.',
 }
 
+// Force dynamic rendering to ensure real-time data updates
+export const dynamic = 'force-dynamic'
+
 export default async function CategoriesPage() {
   try {
     const payload = await getPayload({ config: configPromise })
 
-    // Fetch all active categories
+    // Fetch all active categories with real-time data
     const categories = await payload.find({
       collection: 'categories',
       where: { status: { equals: 'active' } },
       sort: 'sortOrder',
+      depth: 1, // Populate relationships for better performance
     })
+
+    console.log(`[Categories Page] Fetched ${categories.docs.length} active categories`)
 
     // Get product counts for each category
     const categoriesWithCounts = await Promise.all(
@@ -35,12 +41,13 @@ export default async function CategoriesPage() {
             },
           })
 
+          console.log(`[Categories Page] Category "${category.title}" has ${productCount.totalDocs} products`)
           return {
             ...category,
             productCount: productCount.totalDocs,
           }
         } catch (error) {
-          console.warn(`Failed to get product count for category ${category.id}:`, error)
+          console.warn(`[Categories Page] Failed to get product count for category ${category.id}:`, error)
           return {
             ...category,
             productCount: 0,
@@ -123,8 +130,8 @@ export default async function CategoriesPage() {
       </div>
     )
   } catch (error) {
-    console.warn('Failed to load categories during build:', error)
-    // Return a fallback UI during build
+    console.error('[Categories Page] Failed to load categories:', error)
+    // Return a fallback UI with error information
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center mb-12">
@@ -139,7 +146,15 @@ export default async function CategoriesPage() {
           </p>
         </div>
         <div className="text-center py-16">
-          <p className="text-gray-500 dark:text-gray-400">Categories will be loaded at runtime.</p>
+          <div className="text-red-500 dark:text-red-400 mb-4">
+            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <h3 className="text-lg font-medium mb-2">Unable to load categories</h3>
+            <p className="text-gray-500 dark:text-gray-400">
+              There was an error loading the categories. Please try refreshing the page.
+            </p>
+          </div>
         </div>
       </div>
     )
