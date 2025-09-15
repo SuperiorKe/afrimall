@@ -330,7 +330,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
       // Add field selection if specified
       if (Object.keys(selectFields).length > 0) {
-        findOptions.fields = selectFields
+        findOptions.select = selectFields
       }
 
       const existingCategories = await payload.find(findOptions)

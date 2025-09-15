@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
       depth: 0,
     })
 
-    // Test 3: Get categories with specific fields
+    // Test 3: Get categories with specific fields (using select instead of fields)
     const categoriesWithFields = await payload.find({
       collection: 'categories',
       where: {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       },
       limit: 100,
       depth: 0,
-      fields: {
+      select: {
         id: true,
         title: true,
         slug: true,
