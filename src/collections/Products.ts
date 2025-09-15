@@ -168,6 +168,33 @@ export const Products: CollectionConfig = {
           ({ value }) => {
             // Ensure value is always an array
             if (!Array.isArray(value)) {
+              console.log(
+                'Categories field beforeValidate: Converting non-array value to array:',
+                value,
+              )
+              return []
+            }
+            return value
+          },
+        ],
+        beforeChange: [
+          ({ value }) => {
+            // Additional safety check before saving
+            if (!Array.isArray(value)) {
+              console.log(
+                'Categories field beforeChange: Converting non-array value to array:',
+                value,
+              )
+              return []
+            }
+            return value
+          },
+        ],
+        afterRead: [
+          ({ value }) => {
+            // Ensure value is always an array after reading
+            if (!Array.isArray(value)) {
+              console.log('Categories field afterRead: Converting non-array value to array:', value)
               return []
             }
             return value

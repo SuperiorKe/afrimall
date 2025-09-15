@@ -1,5 +1,5 @@
-import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { NextRequest, NextResponse } from 'next/server'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import {
   createSuccessResponse,
@@ -96,7 +96,7 @@ function validateCategoryData(data: Record<string, unknown>): {
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const { searchParams } = new URL(request.url)
 
     // Add debug endpoint for testing
@@ -178,7 +178,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
     // Check content type and parse accordingly
     const contentType = request.headers.get('content-type') || ''
@@ -292,22 +292,62 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       const sort = (body.sort as string) || 'title'
       const depth = parseInt((body.depth as string) || '0')
 
-      const existingCategories = await payload.find({
+      // Handle field selection for admin panel
+      const selectFields: Record<string, boolean> = {}
+      Object.keys(body).forEach((key) => {
+        if (key.startsWith('select[') && key.endsWith(']')) {
+          const fieldName = key.slice(7, -1) // Extract field name from select[fieldName]
+          selectFields[fieldName] = body[key] === 'true'
+        }
+      })
+
+      // Build where clause from request parameters
+      const whereClause: any = {}
+      Object.keys(body).forEach((key) => {
+        if (key.startsWith('where[')) {
+          // Parse where clauses - this is a simplified version
+          if (key.includes('[status][equals]')) {
+            whereClause.status = { equals: body[key] }
+          } else if (key.includes('[id][not_equals]')) {
+            whereClause.id = { not_equals: body[key] }
+          }
+        }
+      })
+
+      // If no where clause was built, use default active status
+      if (Object.keys(whereClause).length === 0) {
+        whereClause.status = { equals: 'active' }
+      }
+
+      const findOptions: any = {
         collection: 'categories',
-        where: {
-          status: { equals: 'active' },
-        },
+        where: whereClause,
         page,
         limit,
         sort,
         depth,
-      })
+      }
 
-      return createSuccessResponse(
-        existingCategories.docs,
-        200,
-        'Categories fetched for search/filter request',
-      )
+      // Add field selection if specified
+      if (Object.keys(selectFields).length > 0) {
+        findOptions.fields = selectFields
+      }
+
+      const existingCategories = await payload.find(findOptions)
+
+      // Return in the format expected by the admin panel
+      return NextResponse.json({
+        docs: existingCategories.docs,
+        totalDocs: existingCategories.totalDocs,
+        limit: existingCategories.limit,
+        totalPages: existingCategories.totalPages,
+        page: existingCategories.page,
+        pagingCounter: existingCategories.pagingCounter,
+        hasPrevPage: existingCategories.hasPrevPage,
+        hasNextPage: existingCategories.hasNextPage,
+        prevPage: existingCategories.prevPage,
+        nextPage: existingCategories.nextPage,
+      })
     }
 
     // If this looks like a relationship dropdown request (no meaningful data), return existing categories
@@ -331,11 +371,19 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         depth: 0,
       })
 
-      return createSuccessResponse(
-        existingCategories.docs,
-        200,
-        'Categories fetched for relationship dropdown',
-      )
+      // Return in the format expected by the admin panel
+      return NextResponse.json({
+        docs: existingCategories.docs,
+        totalDocs: existingCategories.totalDocs,
+        limit: existingCategories.limit,
+        totalPages: existingCategories.totalPages,
+        page: existingCategories.page,
+        pagingCounter: existingCategories.pagingCounter,
+        hasPrevPage: existingCategories.hasPrevPage,
+        hasNextPage: existingCategories.hasNextPage,
+        prevPage: existingCategories.prevPage,
+        nextPage: existingCategories.nextPage,
+      })
     }
 
     // Additional check: if the request has no meaningful data at all, return existing categories
@@ -553,7 +601,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
 export const DELETE = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const { searchParams } = new URL(request.url)
 
     // Get category IDs from query parameters
