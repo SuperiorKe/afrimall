@@ -3,49 +3,39 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { cn } from '@/utilities/ui'
+import { useCart } from '@/contexts/CartContext'
 
 interface CartIconProps {
   className?: string
 }
 
 export function CartIcon({ className }: CartIconProps) {
+  const { cart, isOnline, error } = useCart()
   const [itemCount, setItemCount] = useState(0)
 
   useEffect(() => {
-    loadCartCount()
+    // Update count when cart changes
+    if (cart) {
+      setItemCount(cart.itemCount || 0)
+    } else {
+      setItemCount(0)
+    }
+  }, [cart])
 
-    // Listen for cart updates (you can implement this with a global state manager later)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'afrimall_cart_updated') {
-        loadCartCount()
+  useEffect(() => {
+    // Listen for cart update events from other components
+    const handleCartUpdate = (event: CustomEvent) => {
+      const updatedCart = event.detail
+      if (updatedCart) {
+        setItemCount(updatedCart.itemCount || 0)
+      } else {
+        setItemCount(0)
       }
     }
 
-    window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    window.addEventListener('cartUpdated', handleCartUpdate as EventListener)
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate as EventListener)
   }, [])
-
-  const loadCartCount = async () => {
-    try {
-      // Get session ID for guest users
-      const sessionId = localStorage.getItem('afrimall_session_id')
-      if (!sessionId) return
-
-      // TODO: Check if user is logged in and use customer ID instead
-      const customerId = null
-
-      const response = await fetch(
-        `/api/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`,
-      )
-      const data = await response.json()
-
-      if (data.success && data.data) {
-        setItemCount(data.data.itemCount || 0)
-      }
-    } catch (error) {
-      console.error('Error loading cart count:', error)
-    }
-  }
 
   return (
     <Link
@@ -68,6 +58,20 @@ export function CartIcon({ className }: CartIconProps) {
         <span className="absolute -top-1 -right-1 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white bg-red-600 rounded-full min-w-[1.25rem] h-5">
           {itemCount > 99 ? '99+' : itemCount}
         </span>
+      )}
+
+      {/* Connection status indicator */}
+      {!isOnline && (
+        <span
+          className="absolute -bottom-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full border border-white"
+          title="Offline - changes will sync when reconnected"
+        />
+      )}
+      {error && (
+        <span
+          className="absolute -bottom-1 -right-1 w-2 h-2 bg-red-500 rounded-full border border-white"
+          title="Sync error - click to retry"
+        />
       )}
     </Link>
   )

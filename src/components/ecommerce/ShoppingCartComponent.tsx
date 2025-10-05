@@ -1,9 +1,19 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { X, ShoppingBag, Trash2, Minus, Plus } from 'lucide-react'
+import {
+  X,
+  ShoppingBag,
+  Trash2,
+  Minus,
+  Plus,
+  RefreshCw,
+  AlertCircle,
+  Wifi,
+  WifiOff,
+} from 'lucide-react'
 import { formatPrice } from '@/utilities/formatPrice'
 import { cn } from '@/utilities/ui'
 import { useCart } from '@/contexts/CartContext'
@@ -53,8 +63,82 @@ export function ShoppingCartComponent({
   onClose,
   asModal = false,
 }: ShoppingCartComponentProps = {}) {
-  const { cart, loading, error, updateQuantity, removeFromCart, clearCart } = useCart()
+  const {
+    cart,
+    loading,
+    error,
+    isOnline,
+    lastSyncTime,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+    refreshCart,
+    retryFailedOperation,
+  } = useCart()
   const [updating, setUpdating] = useState<string | null>(null)
+  const [animatingItems, setAnimatingItems] = useState<Set<string>>(new Set())
+  const [showRetryButton, setShowRetryButton] = useState(false)
+  const previousCartRef = useRef<Cart | null>(null)
+
+  useEffect(() => {
+    // Listen for cart update events from other components
+    const handleCartUpdate = (event: CustomEvent) => {
+      // Refresh cart data when external updates occur
+      refreshCart()
+    }
+
+    window.addEventListener('cartUpdated', handleCartUpdate as EventListener)
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate as EventListener)
+  }, [refreshCart])
+
+  // Animation effect for cart changes
+  useEffect(() => {
+    if (cart && previousCartRef.current) {
+      const previousItems = previousCartRef.current.items || []
+      const currentItems = cart.items || []
+
+      // Find items that were added or changed
+      const changedItems = currentItems.filter((currentItem) => {
+        const previousItem = previousItems.find(
+          (prev) =>
+            prev.product.id === currentItem.product.id &&
+            (prev.variant?.id || null) === (currentItem.variant?.id || null),
+        )
+        return !previousItem || previousItem.quantity !== currentItem.quantity
+      })
+
+      // Animate changed items
+      changedItems.forEach((item) => {
+        const itemKey = `${item.product.id}-${item.variant?.id || 'no-variant'}`
+        setAnimatingItems((prev) => new Set(prev).add(itemKey))
+
+        // Remove animation after delay
+        setTimeout(() => {
+          setAnimatingItems((prev) => {
+            const newSet = new Set(prev)
+            newSet.delete(itemKey)
+            return newSet
+          })
+        }, 600)
+      })
+    }
+
+    previousCartRef.current = cart
+  }, [cart])
+
+  // Show retry button when there are errors
+  useEffect(() => {
+    setShowRetryButton(!!error && !isOnline)
+  }, [error, isOnline])
+
+  const handleRetry = async () => {
+    try {
+      await retryFailedOperation()
+      setShowRetryButton(false)
+    } catch (error) {
+      console.error('Error retrying operation:', error)
+    }
+  }
 
   const handleUpdateQuantity = async (
     productId: string,
@@ -121,6 +205,12 @@ export function ShoppingCartComponent({
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
                   <p className="text-gray-500">Loading cart...</p>
+                  {!isOnline && (
+                    <p className="text-yellow-600 text-sm mt-2 flex items-center justify-center">
+                      <WifiOff className="h-4 w-4 mr-1" />
+                      Offline mode
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -134,6 +224,12 @@ export function ShoppingCartComponent({
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
               <p className="text-gray-500">Loading cart...</p>
+              {!isOnline && (
+                <p className="text-yellow-600 text-sm mt-2 flex items-center justify-center">
+                  <WifiOff className="h-4 w-4 mr-1" />
+                  Offline mode
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -156,13 +252,26 @@ export function ShoppingCartComponent({
               </div>
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                  <p className="text-red-500 mb-4">{error}</p>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800"
-                  >
-                    Retry
-                  </button>
+                  <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                  <p className="text-red-600 font-medium mb-2">Error loading cart</p>
+                  <p className="text-gray-500 text-sm mb-4">{error}</p>
+                  <div className="flex items-center justify-center space-x-2">
+                    {!isOnline && (
+                      <span className="text-yellow-600 text-sm flex items-center">
+                        <WifiOff className="h-4 w-4 mr-1" />
+                        Offline
+                      </span>
+                    )}
+                    {showRetryButton && (
+                      <button
+                        onClick={handleRetry}
+                        className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-1" />
+                        Retry
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -174,13 +283,26 @@ export function ShoppingCartComponent({
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
           <div className="flex items-center justify-center py-16">
             <div className="text-center">
-              <p className="text-red-500 mb-4">{error}</p>
-              <button
-                onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-gray-900 text-white rounded hover:bg-gray-800"
-              >
-                Retry
-              </button>
+              <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+              <p className="text-red-600 font-medium mb-2">Error loading cart</p>
+              <p className="text-gray-500 text-sm mb-4">{error}</p>
+              <div className="flex items-center justify-center space-x-2">
+                {!isOnline && (
+                  <span className="text-yellow-600 text-sm flex items-center">
+                    <WifiOff className="h-4 w-4 mr-1" />
+                    Offline
+                  </span>
+                )}
+                {showRetryButton && (
+                  <button
+                    onClick={handleRetry}
+                    className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-1" />
+                    Retry
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -196,7 +318,26 @@ export function ShoppingCartComponent({
           <div className="flex h-full flex-col">
             {/* Header */}
             <div className="flex items-center justify-between border-b px-4 py-6">
-              <h2 className="text-lg font-semibold">Shopping Cart</h2>
+              <div className="flex items-center space-x-2">
+                <h2 className="text-lg font-semibold">Shopping Cart</h2>
+                {!isOnline && (
+                  <span
+                    className="text-yellow-600 text-xs flex items-center"
+                    title="Offline - changes will sync when reconnected"
+                  >
+                    <WifiOff className="h-3 w-3 mr-1" />
+                    Offline
+                  </span>
+                )}
+                {lastSyncTime && (
+                  <span
+                    className="text-gray-400 text-xs"
+                    title={`Last synced: ${lastSyncTime.toLocaleTimeString()}`}
+                  >
+                    <Wifi className="h-3 w-3" />
+                  </span>
+                )}
+              </div>
               <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
                 <X className="h-6 w-6" />
               </button>
@@ -223,70 +364,81 @@ export function ShoppingCartComponent({
                 <div className="px-4 py-6">
                   {/* Cart Items */}
                   <div className="space-y-4">
-                    {cart.items.map((item) => (
-                      <div
-                        key={`${item.product.id}-${item.variant?.id || 'no-variant'}`}
-                        className="flex items-center space-x-4"
-                      >
-                        {/* Product Image */}
-                        <div className="flex-shrink-0">
-                          <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden">
-                            {item.product.images &&
-                            item.product.images.length > 0 &&
-                            item.product.images[0].url ? (
-                              <Image
-                                src={item.product.images[0].url}
-                                alt={item.product.images[0].alt || item.product.title}
-                                width={64}
-                                height={64}
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="h-full w-full flex items-center justify-center text-gray-400">
-                                <ShoppingBag className="h-6 w-6" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                    {cart.items.map((item) => {
+                      const itemKey = `${item.product.id}-${item.variant?.id || 'no-variant'}`
+                      const isAnimating = animatingItems.has(itemKey)
+                      const isUpdating = updating === itemKey
 
-                        {/* Product Details */}
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-sm font-medium text-gray-900 truncate">
-                            {item.product.title}
-                          </h3>
-                          {item.variant && (
-                            <p className="text-xs text-gray-500 truncate">{item.variant.title}</p>
+                      return (
+                        <div
+                          key={itemKey}
+                          className={cn(
+                            'flex items-center space-x-4 transition-all duration-300',
+                            isAnimating && 'bg-blue-50 border border-blue-200 rounded-lg p-2',
+                            isUpdating && 'opacity-50',
                           )}
-                          <p className="text-sm font-medium text-gray-900">
-                            {formatPrice(item.unitPrice)}
-                          </p>
-                        </div>
+                        >
+                          {/* Product Image */}
+                          <div className="flex-shrink-0">
+                            <div className="h-16 w-16 bg-gray-200 rounded-lg overflow-hidden">
+                              {item.product.images &&
+                              item.product.images.length > 0 &&
+                              item.product.images[0].url ? (
+                                <Image
+                                  src={item.product.images[0].url}
+                                  alt={item.product.images[0].alt || item.product.title}
+                                  width={64}
+                                  height={64}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="h-full w-full flex items-center justify-center text-gray-400">
+                                  <ShoppingBag className="h-6 w-6" />
+                                </div>
+                              )}
+                            </div>
+                          </div>
 
-                        {/* Quantity Controls */}
-                        <div className="flex items-center space-x-2">
-                          <QuantityControls
-                            quantity={item.quantity}
-                            onQuantityChange={(newQuantity) =>
-                              handleUpdateQuantity(item.product.id, item.variant?.id, newQuantity)
-                            }
+                          {/* Product Details */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-medium text-gray-900 truncate">
+                              {item.product.title}
+                            </h3>
+                            {item.variant && (
+                              <p className="text-xs text-gray-500 truncate">{item.variant.title}</p>
+                            )}
+                            <p className="text-sm font-medium text-gray-900">
+                              {formatPrice(item.unitPrice)}
+                            </p>
+                          </div>
+
+                          {/* Quantity Controls */}
+                          <div className="flex items-center space-x-2">
+                            <QuantityControls
+                              quantity={item.quantity}
+                              onQuantityChange={(newQuantity) =>
+                                handleUpdateQuantity(item.product.id, item.variant?.id, newQuantity)
+                              }
+                              disabled={
+                                updating ===
+                                `${item.product.id}-${item.variant?.id || 'no-variant'}`
+                              }
+                            />
+                          </div>
+
+                          {/* Remove Button */}
+                          <button
+                            onClick={() => handleRemoveItem(item.product.id, item.variant?.id)}
                             disabled={
                               updating === `${item.product.id}-${item.variant?.id || 'no-variant'}`
                             }
-                          />
+                            className="text-red-500 hover:text-red-700 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
-
-                        {/* Remove Button */}
-                        <button
-                          onClick={() => handleRemoveItem(item.product.id, item.variant?.id)}
-                          disabled={
-                            updating === `${item.product.id}-${item.variant?.id || 'no-variant'}`
-                          }
-                          className="text-red-500 hover:text-red-700 disabled:opacity-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
 
                   {/* Clear Cart Button */}

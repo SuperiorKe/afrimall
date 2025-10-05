@@ -94,7 +94,8 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       const existingItemIndex = currentItems.findIndex((item: any) => {
         // Handle both populated and unpopulated relationships
         const itemProductId = typeof item.product === 'object' ? item.product.id : item.product
-        const itemVariantId = typeof item.variant === 'object' ? item.variant.id : item.variant
+        const itemVariantId =
+          item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant
 
         // Normalize variantId for comparison (handle undefined vs null)
         const normalizedVariantId = variantId || null
@@ -118,7 +119,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         // Add new item
         const unitPrice = product.price // Use product price as base
         const newItem = {
-          product: product, // Use the full product object
+          product: productId, // Use the product ID for relationship
           variant: variantId || null,
           quantity,
           unitPrice,
@@ -141,7 +142,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       // Create new cart
       const unitPrice = product.price // Use product price as base
       const newItem = {
-        product: product, // Use the full product object
+        product: productId, // Use the product ID for relationship
         variant: variantId || null,
         quantity,
         unitPrice,
@@ -255,8 +256,10 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
     // Find item to update
     const itemIndex = currentItems.findIndex((item: any) => {
       // Handle both populated and unpopulated relationships with null checks
-      const itemProductId = item.product && typeof item.product === 'object' ? item.product.id : item.product
-      const itemVariantId = item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant
+      const itemProductId =
+        item.product && typeof item.product === 'object' ? item.product.id : item.product
+      const itemVariantId =
+        item.variant && typeof item.variant === 'object' ? item.variant.id : item.variant
 
       // Normalize variantId for comparison (handle undefined vs null)
       const normalizedVariantId = variantId || null
