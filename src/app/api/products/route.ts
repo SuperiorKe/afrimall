@@ -21,6 +21,13 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const maxPrice = searchParams.get('maxPrice')
     const featured = searchParams.get('featured')
     const status = searchParams.get('status') || 'active'
+    const userAgent = request.headers.get('user-agent') || ''
+
+    // Mobile optimization - detect mobile devices and adjust limits
+    const isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      userAgent,
+    )
+    const optimizedLimit = isMobile ? Math.min(limit, 24) : limit // Cap mobile requests at 24 items
 
     // Build where clause
     const where: Record<string, any> = {
@@ -65,7 +72,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const result = await payload.find({
       collection: 'products',
       where: where as any,
-      limit,
+      limit: optimizedLimit,
       page,
       sort: sortString,
       populate: {
@@ -138,7 +145,9 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     logger.info('Products fetched successfully', 'API:products', {
       totalProducts: result.totalDocs,
       page,
-      limit,
+      limit: optimizedLimit,
+      originalLimit: limit,
+      isMobile,
       search,
       category,
       filters: { minPrice, maxPrice, featured, status },
@@ -546,7 +555,9 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
             })
 
             for (const cart of cartsWithProduct.docs) {
-              const updatedItems = (cart.items || []).filter((item: any) => item.product !== productId)
+              const updatedItems = (cart.items || []).filter(
+                (item: any) => item.product !== productId,
+              )
 
               await payload.update({
                 collection: 'shopping-cart',

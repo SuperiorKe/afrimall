@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ProductCard } from './ProductCard'
-import { Pagination } from '@/components/ui/pagination'
+import { MobileProductPagination } from './MobileProductPagination'
+import { ProductSkeleton, ProductSkeletonCompact } from './ProductSkeleton'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 
 interface Product {
@@ -60,6 +61,8 @@ interface ProductGridProps {
   initialPagination?: PaginationInfo
   searchQuery?: string
   categoryFilter?: string
+  enableInfiniteScroll?: boolean
+  onProductsUpdate?: (products: Product[], pagination: PaginationInfo) => void
 }
 
 export function ProductGrid({
@@ -67,67 +70,97 @@ export function ProductGrid({
   initialPagination,
   searchQuery,
   categoryFilter,
+  enableInfiniteScroll = false,
+  onProductsUpdate,
 }: ProductGridProps) {
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [pagination, setPagination] = useState<PaginationInfo | undefined>(initialPagination)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isInfiniteScroll, setIsInfiniteScroll] = useState(enableInfiniteScroll)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
 
   // Fetch products from API
-  const fetchProducts = useCallback(async (page: number = 1) => {
-    try {
-      setLoading(true)
-      setError(null)
+  const fetchProducts = useCallback(
+    async (page: number = 1, append: boolean = false) => {
+      try {
+        if (append) {
+          setLoadingMore(true)
+        } else {
+          setLoading(true)
+          setError(null)
+        }
 
-      const params = new URLSearchParams()
-      params.set('page', page.toString())
-      params.set('limit', '12')
+        const params = new URLSearchParams()
+        params.set('page', page.toString())
+        params.set('limit', '12')
 
-      // Add search query if present
-      if (searchQuery) {
-        params.set('search', searchQuery)
+        // Add search query if present
+        if (searchQuery) {
+          params.set('search', searchQuery)
+        }
+
+        // Add category filter if present
+        if (categoryFilter) {
+          params.set('category', categoryFilter)
+        }
+
+        // Add current filters from URL
+        const currentSearch = searchParams.get('search')
+        const currentCategory = searchParams.get('category')
+        const currentSort = searchParams.get('sortBy') || 'createdAt'
+        const currentOrder = searchParams.get('sortOrder') || 'desc'
+        const currentMinPrice = searchParams.get('minPrice')
+        const currentMaxPrice = searchParams.get('maxPrice')
+
+        if (currentSearch) params.set('search', currentSearch)
+        if (currentCategory) params.set('category', currentCategory)
+        params.set('sortBy', currentSort)
+        params.set('sortOrder', currentOrder)
+        if (currentMinPrice) params.set('minPrice', currentMinPrice)
+        if (currentMaxPrice) params.set('maxPrice', currentMaxPrice)
+
+        const response = await fetch(`/api/products?${params.toString()}`)
+        const data = await response.json()
+
+        if (data.success) {
+          if (append) {
+            // For infinite scroll, append new products
+            setProducts((prev) => [...prev, ...data.data.products])
+          } else {
+            // For regular pagination, replace products
+            setProducts(data.data.products)
+          }
+
+          setPagination(data.data.pagination)
+
+          // Notify parent component of updates
+          if (onProductsUpdate) {
+            const updatedProducts = append
+              ? [...products, ...data.data.products]
+              : data.data.products
+            onProductsUpdate(updatedProducts, data.data.pagination)
+          }
+        } else {
+          setError(data.message || 'Failed to fetch products')
+        }
+      } catch (err) {
+        setError('Failed to fetch products. Please try again.')
+        console.error('Error fetching products:', err)
+      } finally {
+        if (append) {
+          setLoadingMore(false)
+        } else {
+          setLoading(false)
+        }
       }
-
-      // Add category filter if present
-      if (categoryFilter) {
-        params.set('category', categoryFilter)
-      }
-
-      // Add current filters from URL
-      const currentSearch = searchParams.get('search')
-      const currentCategory = searchParams.get('category')
-      const currentSort = searchParams.get('sortBy') || 'createdAt'
-      const currentOrder = searchParams.get('sortOrder') || 'desc'
-      const currentMinPrice = searchParams.get('minPrice')
-      const currentMaxPrice = searchParams.get('maxPrice')
-
-      if (currentSearch) params.set('search', currentSearch)
-      if (currentCategory) params.set('category', currentCategory)
-      params.set('sortBy', currentSort)
-      params.set('sortOrder', currentOrder)
-      if (currentMinPrice) params.set('minPrice', currentMinPrice)
-      if (currentMaxPrice) params.set('maxPrice', currentMaxPrice)
-
-      const response = await fetch(`/api/products?${params.toString()}`)
-      const data = await response.json()
-
-      if (data.success) {
-        setProducts(data.data.products)
-        setPagination(data.data.pagination)
-      } else {
-        setError(data.message || 'Failed to fetch products')
-      }
-    } catch (err) {
-      setError('Failed to fetch products. Please try again.')
-      console.error('Error fetching products:', err)
-    } finally {
-      setLoading(false)
-    }
-  }, [searchQuery, categoryFilter, searchParams])
+    },
+    [searchQuery, categoryFilter, searchParams, products, onProductsUpdate],
+  )
 
   // Handle page changes
   const handlePageChange = (page: number) => {
@@ -137,26 +170,34 @@ export function ProductGrid({
     fetchProducts(page)
   }
 
-  // Fetch products when component mounts or filters change
+  // Handle infinite scroll load more
+  const handleLoadMore = useCallback(() => {
+    if (pagination && pagination.hasNextPage && !loadingMore) {
+      fetchProducts(pagination.page + 1, true)
+    }
+  }, [pagination, loadingMore, fetchProducts])
+
+  // Reset products when filters change
   useEffect(() => {
     if (!initialProducts.length) {
       fetchProducts(1)
+    } else {
+      // Reset to initial products when filters change
+      setProducts(initialProducts)
+      setPagination(initialPagination)
     }
-  }, [searchQuery, categoryFilter, fetchProducts, initialProducts.length])
+  }, [
+    searchQuery,
+    categoryFilter,
+    fetchProducts,
+    initialProducts.length,
+    initialProducts,
+    initialPagination,
+  ])
 
   // Show loading state
   if (loading && !products.length) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="animate-pulse">
-            <div className="bg-gray-200 h-48 rounded-lg mb-4"></div>
-            <div className="bg-gray-200 h-4 rounded mb-2"></div>
-            <div className="bg-gray-200 h-4 rounded w-3/4"></div>
-          </div>
-        ))}
-      </div>
-    )
+    return <ProductSkeleton count={8} />
   }
 
   // Show error state
@@ -246,56 +287,46 @@ export function ProductGrid({
         ))}
       </div>
 
-      {/* Pagination */}
+      {/* Mobile-Friendly Pagination */}
       {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-center">
-          <nav className="flex items-center gap-2">
-            <button
-              onClick={() => handlePageChange(pagination.page - 1)}
-              disabled={!pagination.hasPrevPage}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <span className="px-3 py-2 text-sm text-gray-700">
-              Page {pagination.page} of {pagination.totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(pagination.page + 1)}
-              disabled={!pagination.hasNextPage}
-              className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </nav>
-        </div>
+        <MobileProductPagination
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          loading={loading || loadingMore}
+          enableInfiniteScroll={isInfiniteScroll}
+          onLoadMore={handleLoadMore}
+          hasMoreProducts={pagination.hasNextPage}
+        />
       )}
 
-      {/* Loading indicator for pagination */}
-      {loading && products.length > 0 && (
-        <div className="text-center py-4">
-          <div className="inline-flex items-center">
-            <svg
-              className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-600"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Loading...
+      {/* Loading indicator for infinite scroll */}
+      {loadingMore && (
+        <div className="mt-8">
+          <ProductSkeletonCompact count={4} />
+          <div className="text-center py-4">
+            <div className="inline-flex items-center space-x-2 text-gray-600">
+              <svg
+                className="animate-spin h-5 w-5 text-blue-600"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span>Loading more products...</span>
+            </div>
           </div>
         </div>
       )}
