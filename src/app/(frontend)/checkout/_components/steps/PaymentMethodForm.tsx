@@ -8,20 +8,25 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useCheckout } from '../CheckoutContext'
 import { useCart } from '@/contexts/CartContext'
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
-import { getStripe, stripeElementsOptions } from '@/utilities/stripe-client'
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { paymentMethodSchema, type PaymentMethodFormData } from '@/lib/validation/checkout-schemas'
 
 // Stripe Elements component
 function StripePaymentForm() {
   const stripe = useStripe()
   const elements = useElements()
-  const { formData, updateFormData, setCurrentStep, stripePayment, createPaymentIntent } =
-    useCheckout()
+  const { updateFormData, formData, createPaymentIntent, stripePayment } = useCheckout()
   const { cart } = useCart()
   const [isCardComplete, setIsCardComplete] = useState(false)
   const [cardError, setCardError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const methods = useForm<PaymentMethodFormData>({
+    resolver: zodResolver(paymentMethodSchema),
+    defaultValues: {
+      ...formData.paymentMethod,
+    },
+  })
 
   const {
     register,
@@ -30,15 +35,7 @@ function StripePaymentForm() {
     setValue,
     trigger,
     watch,
-  } = useForm<PaymentMethodFormData>({
-    resolver: zodResolver(paymentMethodSchema),
-    defaultValues: {
-      saveCard: false,
-      acceptTerms: false,
-      acceptMarketing: false,
-    },
-    mode: 'onChange',
-  })
+  } = methods
 
   // Watch form values for real-time updates
   const watchedValues = watch()
@@ -84,22 +81,12 @@ function StripePaymentForm() {
       setIsSubmitting(true)
       setCardError(null)
 
-      // Calculate total from cart
-      const subtotal = cart.subtotal
-      const shipping = 9.99 // This would be calculated based on shipping method
-      const tax = subtotal * 0.1 // Example tax calculation
-      const total = subtotal + shipping + tax
+      await updateFormData({ paymentMethod: data })
+      // The parent component will handle navigation
 
-      // Create payment intent
-      const success = await createPaymentIntent(total, 'usd')
-
-      if (success) {
-        await updateFormData({ paymentMethod: data })
-        // Don't automatically move to next step - let the main navigation handle it
-      }
     } catch (error) {
-      console.error('Error processing payment:', error)
-      setCardError('Failed to process payment. Please try again.')
+      console.error('Error updating payment method:', error)
+      setCardError('Failed to save payment method. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
@@ -195,11 +182,5 @@ function StripePaymentForm() {
 
 // Main component that provides Stripe context
 export function PaymentMethodForm() {
-  const [stripePromise] = useState(() => getStripe())
-
-  return (
-    <Elements stripe={stripePromise} options={stripeElementsOptions}>
-      <StripePaymentForm />
-    </Elements>
-  )
+  return <StripePaymentForm />
 }

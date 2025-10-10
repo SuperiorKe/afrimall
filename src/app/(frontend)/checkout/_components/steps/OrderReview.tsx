@@ -40,7 +40,7 @@ export function OrderReview() {
         },
         body: JSON.stringify({
           // Order details
-          items: cartItems.map(item => ({
+          items: cartItems.map((item) => ({
             product: item.product.id,
             variant: item.variant?.id || null,
             quantity: item.quantity,
@@ -92,7 +92,9 @@ export function OrderReview() {
   const handlePlaceOrder = async () => {
     // Final validation checks
     if (!customerId) {
-      setPaymentError('Please complete the contact information step to create your customer account.')
+      setPaymentError(
+        'Please complete the contact information step to create your customer account.',
+      )
       return
     }
 
@@ -312,11 +314,9 @@ export function OrderReview() {
         >
           ← Back to Payment
         </Button>
-        
-        <div className="text-sm text-gray-500">
-          Step 5 of 5 • Order Review
-        </div>
-        
+
+        <div className="text-sm text-gray-500">Step 5 of 5 • Order Review</div>
+
         <Button
           onClick={handlePlaceOrder}
           disabled={isProcessing || !stripePayment.clientSecret || !customerId}

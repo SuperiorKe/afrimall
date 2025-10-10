@@ -29,7 +29,6 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: stripeAmount,
       currency: currency.toLowerCase(),
-      payment_method_types: [...STRIPE_CONFIG.paymentMethods],
       receipt_email: customerEmail,
       metadata: {
         orderId: orderId || '',
