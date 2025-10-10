@@ -10,13 +10,14 @@ import { Logo } from '@/components/Logo/Logo'
 import { HeaderNav } from './Nav'
 import { SearchBar } from '@/components/ecommerce/SearchBar'
 import { CartIcon } from '@/components/ecommerce/CartIcon'
+import { Search, X } from 'lucide-react'
 
 interface HeaderClientProps {
   data: Header | null
 }
 
 export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
-  /* Storing the value in a useState to avoid hydration errors */
+  const [showBanner, setShowBanner] = useState(true)
   const [theme, setTheme] = useState<string | null>(null)
   const { headerTheme, setHeaderTheme } = useHeaderTheme()
   const pathname = usePathname()
@@ -37,18 +38,28 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
       {...(theme ? { 'data-theme': theme } : {})}
     >
       {/* Top promotional banner */}
-      <div className="bg-gradient-to-r from-afrimall-orange to-afrimall-red text-white py-2">
-        <div className="container text-center">
-          <p className="text-sm font-medium">
-            🌍 Discover Authentic African Products | Free Shipping on Orders Over $50
-          </p>
+      {showBanner && (
+        <div className="bg-gradient-to-r from-afrimall-orange to-afrimall-red text-white py-2 relative">
+          <div className="container text-center">
+            <p className="text-sm font-medium">
+              🌍 Discover Authentic African Products | Free Shipping on Orders Over $50
+            </p>
+            <button
+              onClick={() => setShowBanner(false)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:bg-black/20 rounded-full p-1"
+              aria-label="Dismiss banner"
+            >
+              <X size={16} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
 
       <div className="container">
-        <div className="py-4">
+        <div className="py-3">
           {/* Top row with logo, search, and cart */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between">
             <Link href="/" className="hover:scale-105 transition-transform">
               <Logo loading="eager" priority="high" />
             </Link>
@@ -58,8 +69,11 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
               <SearchBar className="w-full border-2 border-afrimall-orange/20 focus-within:border-afrimall-orange rounded-lg" />
             </div>
 
-            {/* Cart and Auth */}
-            <div className="flex items-center space-x-4">
+            {/* Mobile Search, Cart and Auth */}
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              <Link href="/search" className="md:hidden p-2 text-gray-600 dark:text-gray-300">
+                <Search className="h-6 w-6" />
+              </Link>
               <CartIcon />
               <div className="hidden sm:flex items-center space-x-2">
                 <Link
@@ -80,16 +94,8 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
           </div>
 
           {/* Navigation */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-center pt-2">
             <HeaderNav data={data} />
-
-            {/* Mobile search - shown on mobile, hidden on desktop */}
-            <div className="md:hidden flex-1 max-w-xs">
-              <SearchBar
-                className="w-full border-afrimall-orange/20 focus-within:border-afrimall-orange rounded-md"
-                placeholder="Search..."
-              />
-            </div>
           </div>
         </div>
       </div>

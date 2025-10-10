@@ -3,12 +3,12 @@
 import { createContext, useContext, useState } from 'react'
 import { z } from 'zod'
 import { useCart } from '@/contexts/CartContext'
-import { 
-  contactInfoSchema, 
-  addressSchema, 
+import {
+  contactInfoSchema,
+  addressSchema,
   shippingInfoSchema,
   type ContactInfoFormData,
-  type ShippingInfoFormData
+  type ShippingInfoFormData,
 } from '@/lib/validation/checkout-schemas'
 
 // Create AddressFormData type from the schema
@@ -106,14 +106,32 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
   })
 
   const updateFormData = async (data: Partial<CheckoutData>) => {
-    setFormData((prev) => ({
-      ...prev,
+    const newFormData = {
+      ...formData,
       ...data,
-    }))
+    }
 
-    // If we're updating contact info, try to create/retrieve customer
-    if (data.contactInfo && !customerId) {
-      await createCustomer()
+    console.log('CheckoutContext: Updating form data:', {
+      previousData: formData,
+      newData: data,
+      mergedData: newFormData,
+    })
+
+    setFormData(newFormData)
+
+    // If we have all required info and no customer ID, try to create customer
+    if (
+      !customerId &&
+      newFormData.contactInfo?.email &&
+      newFormData.contactInfo?.phone &&
+      newFormData.shippingAddress?.firstName &&
+      newFormData.shippingAddress?.lastName
+    ) {
+      console.log('CheckoutContext: All required data available, attempting customer creation...')
+      // Wait a bit for the state to update, then try to create customer
+      setTimeout(async () => {
+        await createCustomer()
+      }, 100)
     }
   }
 
@@ -124,7 +142,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       // Only include email if it's valid
       const email = formData.contactInfo.email?.trim()
       const hasValidEmail = email && email.includes('@')
-      
+
       const response = await fetch('/api/stripe/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -178,8 +196,21 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
         !shippingAddress.firstName ||
         !shippingAddress.lastName
       ) {
+        console.log('Missing required fields for customer creation:', {
+          email: !!contactInfo.email,
+          phone: !!contactInfo.phone,
+          firstName: !!shippingAddress.firstName,
+          lastName: !!shippingAddress.lastName,
+        })
         return null
       }
+
+      console.log('Creating customer with data:', {
+        email: contactInfo.email,
+        phone: contactInfo.phone,
+        firstName: shippingAddress.firstName,
+        lastName: shippingAddress.lastName,
+      })
 
       const response = await fetch('/api/customers', {
         method: 'POST',
@@ -212,6 +243,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json()
 
       if (data.success) {
+        console.log('Customer created successfully:', data.data.id)
         setCustomerId(data.data.id)
         return data.data.id
       } else {
@@ -249,9 +281,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
         currency: 'USD',
         customer: customerId,
         shippingAddress: formData.shippingAddress,
-        billingAddress: formData.sameAsBilling
-          ? formData.shippingAddress
-          : formData.billingAddress,
+        billingAddress: formData.sameAsBilling ? formData.shippingAddress : formData.billingAddress,
         paymentMethod: 'credit_card',
         paymentStatus: 'paid',
         paymentReference: paymentIntentId,

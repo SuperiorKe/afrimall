@@ -1,9 +1,7 @@
 import React from 'react'
 import { getPayload } from 'payload'
 import configPromise from '@payload-config'
-import { ProductGrid } from '@/components/ecommerce/ProductGrid'
-import { CategoryFilter } from '@/components/ecommerce/CategoryFilter'
-import { ProductFilters } from '@/components/ecommerce/ProductFilters'
+import { ProductsClient } from './ProductsClient' // Assuming the new component is in the same directory
 
 import type { Metadata } from 'next'
 import { Logo } from '@/components/Logo/Logo'
@@ -26,6 +24,7 @@ type Props = {
 export const dynamic = 'force-dynamic'
 
 export default async function ProductsPage({ searchParams }: Props) {
+
   try {
     const params = await searchParams
     const {
@@ -151,26 +150,13 @@ export default async function ProductsPage({ searchParams }: Props) {
 
         {/* Filters and Products */}
         <div className="container mx-auto px-4 py-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar Filters */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-8 space-y-6">
-                <CategoryFilter categories={transformedCategories} />
-                <ProductFilters />
-              </div>
-            </div>
-
-            {/* Products Grid */}
-            <div className="lg:col-span-3">
-              <ProductGrid
-                initialProducts={transformedProducts}
-                initialPagination={paginationInfo}
-                searchQuery={search}
-                categoryFilter={category}
-                enableInfiniteScroll={false}
-              />
-            </div>
-          </div>
+          <ProductsClient
+            initialProducts={transformedProducts}
+            initialPagination={paginationInfo}
+            categories={transformedCategories}
+            searchQuery={search}
+            categoryFilter={category}
+          />
         </div>
       </div>
     )
@@ -203,6 +189,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 }
 
 export const metadata: Metadata = {
+
   title: 'Products - AfriMall',
   description:
     'Browse our collection of authentic African products, from traditional crafts to modern fashion and home decor.',

@@ -2,9 +2,12 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext'
 
 export function CustomerLoginForm() {
   const router = useRouter()
+  const { login } = useCustomerAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -18,26 +21,18 @@ export function CustomerLoginForm() {
     setError('')
 
     try {
-      // TODO: Implement customer authentication with Payload
-      const response = await fetch('/api/customers/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      const success = await login(formData.email, formData.password)
 
-      const data = await response.json()
-
-      if (data.success) {
-        // Store authentication token/session
-        localStorage.setItem('afrimall_customer_token', data.token)
-
-        // Redirect to account page or previous page
-        const returnUrl = new URLSearchParams(window.location.search).get('returnUrl') || '/account'
-        router.push(returnUrl)
+      if (success) {
+        // Redirect to account page or back to checkout
+        const returnUrl = new URLSearchParams(window.location.search).get('return')
+        if (returnUrl) {
+          router.push(returnUrl)
+        } else {
+          router.push('/account')
+        }
       } else {
-        setError(data.message || 'Login failed. Please check your credentials.')
+        setError('Invalid email or password. Please try again.')
       }
     } catch (error) {
       setError('An error occurred. Please try again.')
@@ -47,9 +42,10 @@ export function CustomerLoginForm() {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
     }))
   }
 
@@ -133,12 +129,12 @@ export function CustomerLoginForm() {
         </div>
 
         <div className="text-sm">
-          <a
-            href="#"
+          <Link
+            href="/auth/forgot-password"
             className="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300"
           >
             Forgot your password?
-          </a>
+          </Link>
         </div>
       </div>
 

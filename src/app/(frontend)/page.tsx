@@ -2,25 +2,36 @@ import React from 'react'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { Logo } from '@/components/Logo/Logo'
+import { Tag } from 'lucide-react'
 
 export const metadata: Metadata = {
   title: 'Afrimall - African Marketplace',
   description: 'Discover authentic African products, crafts, and goods from across the continent.',
 }
 
+const categories = [
+  { name: 'All Products', href: '/products' },
+  { name: 'African Wear', href: '/categories/african-wear' },
+  { name: 'Bags and Purses', href: '/categories/bags-and-purses' },
+  { name: 'Jewelry', href: '/categories/jewelry' },
+  { name: 'Home Decor', href: '/categories/home-decor' },
+  { name: 'Art', href: '/categories/art' },
+  { name: 'Beauty', href: '/categories/beauty' },
+]
+
 export default function HomePage() {
   return (
-    <div className="container mx-auto px-4 py-16">
+    <div className="container mx-auto px-4 py-8">
       {/* Hero Section with Logo */}
-      <div className="text-center mb-16">
-        <div className="flex justify-center mb-8">
+      <div className="text-center mb-8">
+        <div className="flex justify-center mb-4">
           <Logo className="h-24 w-24" />
         </div>
-        <h1 className="text-5xl font-bold text-gray-900 dark:text-white mb-6">
+        <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4">
           Welcome to <span className="text-green-600">Afri</span>
           <span className="text-orange-500">mall</span>
         </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+        <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto mb-6">
           Discover authentic African products, crafts, and goods from across the continent. Support
           talented African entrepreneurs and bring the beauty of Africa into your home.
         </p>
@@ -37,6 +48,22 @@ export default function HomePage() {
           >
             Browse Categories
           </Link>
+        </div>
+      </div>
+
+      {/* Category Carousel */}
+      <div className="mb-12">
+        <div className="flex overflow-x-auto space-x-4 pb-4">
+          {categories.map((category) => (
+            <Link
+              href={category.href}
+              key={category.name}
+              className="flex-shrink-0 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full px-6 py-3 text-sm font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center space-x-2"
+            >
+              <Tag className="h-4 w-4" />
+              <span>{category.name}</span>
+            </Link>
+          ))}
         </div>
       </div>
 
