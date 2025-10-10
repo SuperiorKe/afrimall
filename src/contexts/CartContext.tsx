@@ -254,13 +254,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: data.data }))
         return true
       } else {
+        console.error('CartContext: API returned error', data)
         // Revert optimistic update on failure
         await loadCart(false)
         setError(data.message || 'Failed to add item to cart')
         return false
       }
     } catch (error) {
-      console.error('Error adding to cart:', error)
+      console.error('CartContext: Exception in addToCart', error)
       setIsOnline(false)
       // Store operation for retry when back online
       setPendingOperations((prev) => [...prev, () => addToCart(productId, variantId, quantity)])

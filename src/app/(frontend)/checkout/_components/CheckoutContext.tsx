@@ -121,6 +121,10 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
     setStripePayment((prev) => ({ ...prev, isProcessing: true, error: null }))
 
     try {
+      // Only include email if it's valid
+      const email = formData.contactInfo.email?.trim()
+      const hasValidEmail = email && email.includes('@')
+      
       const response = await fetch('/api/stripe/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -129,23 +133,26 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({
           amount,
           currency,
-          customerEmail: formData.contactInfo.email,
+          ...(hasValidEmail && { customerEmail: email }),
           metadata: {
             customerName: `${formData.shippingAddress.firstName} ${formData.shippingAddress.lastName}`,
           },
         }),
       })
 
-      const data = await response.json()
+      const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create payment intent')
+        throw new Error(result.error || 'Failed to create payment intent')
       }
+
+      // Extract data from the API response wrapper
+      const { clientSecret, paymentIntentId } = result.data
 
       setStripePayment((prev) => ({
         ...prev,
-        clientSecret: data.clientSecret,
-        paymentIntentId: data.paymentIntentId,
+        clientSecret,
+        paymentIntentId,
         isProcessing: false,
       }))
 

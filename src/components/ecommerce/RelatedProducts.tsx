@@ -2,61 +2,10 @@
 
 import React from 'react'
 import { ProductCard } from './ProductCard'
-
-interface Product {
-  id: number
-  title: string
-  description: string
-  images: {
-    image:
-      | number
-      | {
-          id: number
-          url?: string | null
-          alt?: string | null
-          width?: number | null
-          height?: number | null
-        }
-    alt: string
-    id?: string | null
-  }[]
-  price: number
-  compareAtPrice?: number | null
-  sku: string
-  inventory?: {
-    trackQuantity?: boolean | null
-    quantity?: number | null
-    allowBackorder?: boolean | null
-    lowStockThreshold?: number | null
-  } | null
-  categories?:
-    | (
-        | number
-        | {
-            id: number
-            title: string
-            slug?: string | null
-          }
-      )[]
-    | null
-  tags?:
-    | {
-        tag: string
-        id?: string | null
-      }[]
-    | null
-  status: 'draft' | 'active' | 'archived'
-  featured?: boolean | null
-  weight?: number | null
-  dimensions?: {
-    length?: number | null
-    width?: number | null
-    height?: number | null
-  } | null
-}
+import type { TransformedProduct } from '@/utilities/productTransform'
 
 interface RelatedProductsProps {
-  products: Product[]
+  products: TransformedProduct[]
 }
 
 export function RelatedProducts({ products }: RelatedProductsProps) {
@@ -70,7 +19,7 @@ export function RelatedProducts({ products }: RelatedProductsProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {products.map((product) => (
-          <ProductCard key={product.id} product={product as any} />
+          <ProductCard key={product.id} product={product} />
         ))}
       </div>
     </div>

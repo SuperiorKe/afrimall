@@ -119,6 +119,18 @@ export default async function ProductsPage({ searchParams }: Props) {
       description: cat.description,
     }))
 
+    // Transform pagination info
+    const paginationInfo = {
+      totalDocs: products.totalDocs,
+      totalPages: products.totalPages,
+      page: products.page || 1,
+      limit: products.limit,
+      hasNextPage: products.hasNextPage,
+      hasPrevPage: products.hasPrevPage,
+      nextPage: products.nextPage || undefined,
+      prevPage: products.prevPage || undefined,
+    }
+
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header */}
@@ -150,7 +162,13 @@ export default async function ProductsPage({ searchParams }: Props) {
 
             {/* Products Grid */}
             <div className="lg:col-span-3">
-              <ProductGrid initialProducts={transformedProducts} />
+              <ProductGrid
+                initialProducts={transformedProducts}
+                initialPagination={paginationInfo}
+                searchQuery={search}
+                categoryFilter={category}
+                enableInfiniteScroll={false}
+              />
             </div>
           </div>
         </div>

@@ -32,10 +32,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         id: productId,
       })
     } catch (error) {
+      console.error('Cart API: Product not found', error)
       throw new ApiError('Product not found', 404, 'PRODUCT_NOT_FOUND')
     }
 
     if (!product || product.status !== 'active') {
+      console.error('Cart API: Product not available', {
+        product: !!product,
+        status: product?.status,
+      })
       throw new ApiError('Product not available', 400, 'PRODUCT_UNAVAILABLE')
     }
 

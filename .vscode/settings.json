@@ -36,5 +36,8 @@
     "editor.codeActionsOnSave": {
       "source.fixAll.eslint": "explicit"
     }
-  }
+  },
+  "workbench.preferredDarkColorTheme": "Default Light Modern",
+  "workbench.preferredHighContrastColorTheme": "Default High Contrast Light",
+  "workbench.colorTheme": "Default Light+"
 }

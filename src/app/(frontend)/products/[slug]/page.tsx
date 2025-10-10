@@ -7,6 +7,7 @@ import type { Media } from '@/payload-types'
 import { ProductGallery } from '@/components/ecommerce/ProductGallery'
 import { ProductDetail } from '@/components/ecommerce/ProductDetail'
 import { RelatedProducts } from '@/components/ecommerce/RelatedProducts'
+import { transformProducts } from '@/utilities/productTransform'
 
 interface Props {
   params: Promise<{ slug: string }>
@@ -58,7 +59,15 @@ export default async function ProductPage({ params }: Props) {
         ],
       },
       limit: 4,
+      populate: {
+        categories: true,
+        images: true,
+        tags: true,
+      } as any,
     })
+
+    // Transform related products using utility function
+    const transformedRelatedProducts = transformProducts(relatedProducts.docs)
 
     return (
       <div className="container mx-auto px-4 py-8">
@@ -102,9 +111,9 @@ export default async function ProductPage({ params }: Props) {
         </div>
 
         {/* Related Products */}
-        {relatedProducts.docs.length > 0 && (
+        {transformedRelatedProducts.length > 0 && (
           <div className="mb-16">
-            <RelatedProducts products={relatedProducts.docs as any} />
+            <RelatedProducts products={transformedRelatedProducts} />
           </div>
         )}
       </div>

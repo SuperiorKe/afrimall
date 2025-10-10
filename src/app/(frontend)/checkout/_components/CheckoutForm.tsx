@@ -1,5 +1,7 @@
 'use client'
 
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements } from '@stripe/react-stripe-js'
 import { useCheckout } from './CheckoutContext'
 import { useCart } from '@/contexts/CartContext'
 import { ContactInfoForm } from './steps/ContactInfoForm'
@@ -9,17 +11,21 @@ import { PaymentMethodForm } from './steps/PaymentMethodForm'
 import { OrderReview } from './steps/OrderReview'
 import { Button } from '@/components/ui/button'
 
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '')
+
 export function CheckoutForm() {
-  const { currentStep, setCurrentStep } = useCheckout()
+  const { currentStep, setCurrentStep, stripePayment, createPaymentIntent } = useCheckout()
   const { cart, loading: cartLoading } = useCart()
 
-  const steps = [
+    const steps = [
     { id: 1, name: 'Contact', component: <ContactInfoForm /> },
     { id: 2, name: 'Shipping', component: <ShippingInfoForm /> },
     { id: 3, name: 'Billing', component: <BillingInfoForm /> },
     { id: 4, name: 'Payment', component: <PaymentMethodForm /> },
     { id: 5, name: 'Review', component: <OrderReview /> },
   ]
+
+
 
   const handleNext = async () => {
     if (currentStep < steps.length) {
@@ -34,7 +40,16 @@ export function CheckoutForm() {
           form.dispatchEvent(submitEvent)
 
           // Small delay to allow form submission to complete
-          setTimeout(() => {
+          setTimeout(async () => {
+            // If moving to payment step (step 4), create payment intent
+            if (currentStep === 3 && cart?.subtotal) {
+              // Calculate total with shipping and tax
+              const shipping = 9.99
+              const tax = cart.subtotal * 0.1
+              const total = cart.subtotal + shipping + tax
+              // Pass the amount in dollars - the API will convert to cents
+              await createPaymentIntent(Math.round(total * 100) / 100, 'usd')
+            }
             setCurrentStep(currentStep + 1)
           }, 100)
         } else {
@@ -42,6 +57,15 @@ export function CheckoutForm() {
           form.reportValidity()
         }
       } else {
+        // If moving to payment step (step 4), create payment intent
+        if (currentStep === 3 && cart?.subtotal) {
+          // Calculate total with shipping and tax
+          const shipping = 9.99
+          const tax = cart.subtotal * 0.1
+          const total = cart.subtotal + shipping + tax
+          // Pass the amount in dollars - the API will convert to cents
+          await createPaymentIntent(Math.round(total * 100) / 100, 'usd')
+        }
         setCurrentStep(currentStep + 1)
       }
     }
@@ -123,7 +147,26 @@ export function CheckoutForm() {
       <div className="p-6 bg-gray-50 dark:bg-gray-900/50">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-100 dark:border-gray-700">
           <div data-step={currentStep}>
-            {steps.find((step) => step.id === currentStep)?.component}
+            {currentStep >= 4 && stripePayment.clientSecret ? (
+              <Elements
+                options={{
+                  clientSecret: stripePayment.clientSecret,
+                  appearance: { theme: 'stripe' as const },
+                }}
+                stripe={stripePromise}
+              >
+                {steps.find(step => step.id === currentStep)?.component}
+              </Elements>
+            ) : currentStep >= 4 && !stripePayment.clientSecret ? (
+              <div className="flex items-center justify-center p-8">
+                <div className="text-center">
+                  <div className="w-8 h-8 border-4 border-afrimall-orange border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                  <p className="text-gray-600">Preparing secure payment...</p>
+                </div>
+              </div>
+            ) : (
+              steps.find(step => step.id === currentStep)?.component
+            )}
           </div>
         </div>
       </div>
