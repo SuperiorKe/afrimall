@@ -9,18 +9,20 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     const body = await request.json()
     const payload = await getPayloadHMR({ config: configPromise })
 
-    const {
-      email,
-      phone,
-      firstName,
-      lastName,
-      subscribeToNewsletter = false,
-      addresses = [],
-    } = body
+    const { email, password, firstName, lastName, phone, preferences = {} } = body
 
     // Validate required fields
-    if (!email || !firstName || !lastName) {
-      throw new ApiError('Email, first name, and last name are required', 400, 'MISSING_FIELDS')
+    if (!email || !password || !firstName || !lastName) {
+      throw new ApiError(
+        'Email, password, first name, and last name are required',
+        400,
+        'MISSING_FIELDS',
+      )
+    }
+
+    // Validate password strength
+    if (password.length < 6) {
+      throw new ApiError('Password must be at least 6 characters long', 400, 'WEAK_PASSWORD')
     }
 
     // Check if customer already exists
@@ -33,50 +35,39 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     })
 
     if (existingCustomer.docs.length > 0) {
-      // Return existing customer
-      const customer = existingCustomer.docs[0]
-
-      logger.info('Customer already exists, returning existing customer', 'API:customers', {
-        customerId: customer.id,
-        email: customer.email,
-      })
-
-      return createSuccessResponse(
-        {
-          id: customer.id,
-          email: customer.email,
-          firstName: customer.firstName,
-          lastName: customer.lastName,
-          phone: customer.phone,
-          isNew: false,
-        },
-        200,
-        'Customer already exists',
-      )
+      throw new ApiError('A customer with this email already exists', 409, 'EMAIL_EXISTS')
     }
 
-    // Create new customer (without password for checkout purposes)
+    // Create new customer with authentication
     const customer = await payload.create({
       collection: 'customers',
       data: {
         email,
-        phone,
+        password, // Payload will automatically hash this
         firstName,
         lastName,
-        addresses,
+        phone,
         preferences: {
-          newsletter: subscribeToNewsletter,
+          newsletter: preferences.newsletter || false,
           currency: 'USD',
           language: 'en',
         },
         status: 'active',
         customerGroup: 'regular',
-        // Generate a temporary password for checkout customers
-        password: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       },
     })
 
-    logger.info('Customer created successfully', 'API:customers', {
+    // Generate authentication token for the new customer
+    const token = await payload.login({
+      collection: 'customers',
+      data: {
+        email,
+        password,
+      },
+      req: request,
+    })
+
+    logger.info('Customer registered successfully', 'API:customers:register', {
       customerId: customer.id,
       email: customer.email,
     })
@@ -88,10 +79,11 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         firstName: customer.firstName,
         lastName: customer.lastName,
         phone: customer.phone,
-        isNew: true,
+        token: token.token,
+        user: token.user,
       },
       201,
-      'Customer created successfully',
+      'Customer registered successfully',
     )
   } catch (error) {
     if (error instanceof ApiError) {
@@ -104,12 +96,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       if (errorMessage.includes('email') && errorMessage.includes('unique')) {
         throw new ApiError('A customer with this email already exists', 409, 'EMAIL_EXISTS')
       }
-      if (errorMessage.includes('password')) {
-        throw new ApiError('Password is required for customer creation', 400, 'PASSWORD_REQUIRED')
-      }
     }
 
-    logger.apiError('Error creating customer', '/api/customers', error as Error)
-    throw new ApiError('Failed to create customer', 500, 'CREATE_ERROR')
+    logger.apiError('Error registering customer', '/api/customers/register', error as Error)
+    throw new ApiError('Failed to register customer', 500, 'REGISTER_ERROR')
   }
 })

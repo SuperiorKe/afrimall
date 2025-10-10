@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext'
 
 export function CustomerRegisterForm() {
   const router = useRouter()
+  const { register } = useCustomerAuth()
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -37,34 +39,27 @@ export function CustomerRegisterForm() {
     }
 
     try {
-      // TODO: Implement customer registration with Payload
-      const response = await fetch('/api/customers/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const success = await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone,
+        preferences: {
+          newsletter: formData.newsletter,
         },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          phone: formData.phone,
-          preferences: {
-            newsletter: formData.newsletter,
-          },
-        }),
       })
 
-      const data = await response.json()
-
-      if (data.success) {
-        // Store authentication token/session
-        localStorage.setItem('afrimall_customer_token', data.token)
-
-        // Redirect to account page
-        router.push('/account')
+      if (success) {
+        // Redirect to account page or back to checkout
+        const returnUrl = new URLSearchParams(window.location.search).get('return')
+        if (returnUrl) {
+          router.push(returnUrl)
+        } else {
+          router.push('/account')
+        }
       } else {
-        setError(data.message || 'Registration failed. Please try again.')
+        setError('Registration failed. Please try again.')
       }
     } catch (error) {
       setError('An error occurred. Please try again.')

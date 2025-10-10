@@ -42,6 +42,13 @@ export function ShippingInfoForm() {
   const handleFieldChange = async (field: keyof ShippingInfoFormData, value: any) => {
     setValue(field, value)
     await trigger(field)
+
+    // Auto-save the data as user types
+    const currentData = {
+      ...formData.shippingAddress,
+      [field]: value,
+    }
+    await updateFormData({ shippingAddress: currentData })
   }
 
   return (

@@ -40,6 +40,13 @@ export function ContactInfoForm() {
   const handleFieldChange = async (field: keyof ContactInfoFormData, value: any) => {
     setValue(field, value)
     await trigger(field)
+
+    // Auto-save the data as user types
+    const currentData = {
+      ...formData.contactInfo,
+      [field]: value,
+    }
+    await updateFormData({ contactInfo: currentData })
   }
 
   return (
