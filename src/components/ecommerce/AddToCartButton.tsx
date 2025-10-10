@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { cn } from '@/utilities/ui'
+import { useCart } from '@/contexts/CartContext'
 
 interface Product {
   id: string
@@ -29,65 +30,28 @@ export function AddToCartButton({
   disabled = false,
   className,
 }: AddToCartButtonProps) {
-  const [isLoading, setIsLoading] = useState(false)
   const [isSuccess, setIsSuccess] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { addToCart, loading } = useCart()
 
   const handleAddToCart = async () => {
-    if (disabled || isLoading) return
+    if (disabled || loading) return
 
     try {
-      setIsLoading(true)
-      setError(null)
+      const success = await addToCart(product.id, variantId, quantity)
 
-      // Get session ID for guest users
-      let sessionId = localStorage.getItem('afrimall_session_id')
-      if (!sessionId) {
-        sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        localStorage.setItem('afrimall_session_id', sessionId)
-      }
-
-      // TODO: Check if user is logged in and use customer ID instead
-      const customerId = null
-
-      const response = await fetch('/api/cart/items', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          customerId,
-          sessionId,
-          productId: product.id,
-          variantId,
-          quantity,
-          currency: 'USD',
-        }),
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
+      if (success) {
         setIsSuccess(true)
-        // Trigger cart update event for other components
-        window.dispatchEvent(new CustomEvent('cartUpdated', { detail: data.data }))
-
         // Reset success state after 2 seconds
         setTimeout(() => setIsSuccess(false), 2000)
-      } else {
-        setError(data.message || 'Failed to add item to cart')
       }
-    } catch (err) {
-      setError('Failed to add item to cart. Please try again.')
-      console.error('Error adding to cart:', err)
-    } finally {
-      setIsLoading(false)
+    } catch (error) {
+      console.error('AddToCartButton: Error in handleAddToCart', error)
     }
   }
 
   const getButtonText = () => {
     if (isSuccess) return 'Added to Cart! ✓'
-    if (isLoading) return 'Adding...'
+    if (loading) return 'Adding...'
     if (disabled) return 'Out of Stock'
     return 'Add to Cart'
   }
@@ -99,7 +63,7 @@ export function AddToCartButton({
     if (disabled) {
       return 'bg-gray-300 text-gray-500 cursor-not-allowed'
     }
-    if (isLoading) {
+    if (loading) {
       return 'bg-blue-600 text-white cursor-wait'
     }
     return 'bg-blue-600 hover:bg-blue-700 text-white'
@@ -109,7 +73,7 @@ export function AddToCartButton({
     <div className="space-y-2">
       <button
         onClick={handleAddToCart}
-        disabled={disabled || isLoading}
+        disabled={disabled || loading}
         className={cn(
           'w-full px-4 py-2 rounded-md font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500',
           getButtonStyles(),
@@ -118,9 +82,6 @@ export function AddToCartButton({
       >
         {getButtonText()}
       </button>
-
-      {/* Error Message */}
-      {error && <p className="text-xs text-red-600 dark:text-red-400 text-center">{error}</p>}
 
       {/* Success Message */}
       {isSuccess && (
