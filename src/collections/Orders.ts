@@ -110,8 +110,9 @@ export const Orders: CollectionConfig = {
             {
               name: 'image',
               type: 'text',
+              required: false,
               admin: {
-                description: 'Product image URL at time of order',
+                description: 'Product image URL at time of order (optional)',
               },
             },
           ],
