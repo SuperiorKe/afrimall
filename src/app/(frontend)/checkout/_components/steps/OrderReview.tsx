@@ -88,10 +88,7 @@ export function OrderReview() {
             productSnapshot: {
               title: item.product.title,
               sku: item.product.sku || item.product.id, // Use actual SKU if available
-              // Only include image if it exists and is a valid string
-              ...(item.product.images?.[0]?.url && typeof item.product.images[0].url === 'string'
-                ? { image: item.product.images[0].url }
-                : {}),
+              // Image field omitted - upload type doesn't accept URL strings
             },
           })),
           total: total,
