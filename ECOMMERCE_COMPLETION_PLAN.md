@@ -321,6 +321,7 @@
 | Dec 2024 | Hotfix | Order Validation Fix | ✅ Complete | Fixed productSnapshot.image validation error by changing field type from upload to text |
 | Dec 2024 | Hotfix | Customer Creation Fix | ✅ Complete | Added _verified flag to skip email verification for checkout customers |
 | Dec 2024 | Hotfix | Card Validation Fix | ✅ Complete | Added card completeness validation and improved Stripe error handling |
+| Dec 2024 | Hotfix | Production Schema Fix | ✅ Complete | Removed _verified field and made image optional for production compatibility |
 
 ---
 
