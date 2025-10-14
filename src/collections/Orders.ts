@@ -111,6 +111,10 @@ export const Orders: CollectionConfig = {
               name: 'image',
               type: 'upload',
               relationTo: 'media',
+              required: false,
+              admin: {
+                description: 'Product image at time of order (optional)',
+              },
             },
           ],
         },

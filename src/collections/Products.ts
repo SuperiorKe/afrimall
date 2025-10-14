@@ -339,5 +339,31 @@ export const Products: CollectionConfig = {
         return data
       },
     ],
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        // Check for low stock alerts after inventory changes
+        if (doc.inventory?.trackQuantity && doc.inventory?.quantity !== undefined) {
+          const currentQuantity = doc.inventory.quantity
+          const lowStockThreshold = doc.inventory.lowStockThreshold || 5
+
+          if (currentQuantity <= lowStockThreshold && currentQuantity > 0) {
+            // Log low stock alert
+            console.warn(
+              `LOW STOCK ALERT: Product "${doc.title}" (${doc.sku}) has ${currentQuantity} units remaining (threshold: ${lowStockThreshold})`,
+            )
+
+            // TODO: Send admin notification email
+            // TODO: Create admin dashboard alert
+          } else if (currentQuantity === 0) {
+            // Log out of stock alert
+            console.warn(`OUT OF STOCK: Product "${doc.title}" (${doc.sku}) is now out of stock`)
+
+            // TODO: Send admin notification email
+            // TODO: Create admin dashboard alert
+            // TODO: Update product status if needed
+          }
+        }
+      },
+    ],
   },
 }

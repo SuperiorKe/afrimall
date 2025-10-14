@@ -35,6 +35,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     // Generate unique order number
     const orderNumber = generateOrderNumber()
 
+    // Validate inventory before creating order
+    await validateAndReserveInventory(payload, items)
+
     // Create the order
     const order = await payload.create({
       collection: 'orders',
@@ -146,6 +149,82 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     throw new ApiError('Failed to create order', 500, 'CREATE_ERROR')
   }
 })
+
+// Helper function to validate and reserve inventory
+async function validateAndReserveInventory(payload: any, items: any[]) {
+  for (const item of items) {
+    if (!item.product || !item.quantity) continue
+
+    try {
+      // Get current product inventory
+      const product = await payload.findByID({
+        collection: 'products',
+        id: item.product,
+      })
+
+      if (!product) {
+        throw new ApiError(`Product ${item.product} not found`, 400, 'PRODUCT_NOT_FOUND')
+      }
+
+      // Check if inventory tracking is enabled
+      if (product.inventory?.trackQuantity && !product.inventory?.allowBackorder) {
+        const currentQuantity = product.inventory?.quantity || 0
+        const requestedQuantity = item.quantity
+
+        if (requestedQuantity > currentQuantity) {
+          throw new ApiError(
+            `Insufficient inventory for ${product.title}. Available: ${currentQuantity}, Requested: ${requestedQuantity}`,
+            400,
+            'INSUFFICIENT_INVENTORY',
+          )
+        }
+
+        // Reserve inventory by deducting it
+        const newQuantity = currentQuantity - requestedQuantity
+        await payload.update({
+          collection: 'products',
+          id: item.product,
+          data: {
+            'inventory.quantity': newQuantity,
+          },
+        })
+
+        logger.info('Inventory reserved', 'API:orders', {
+          productId: item.product,
+          productTitle: product.title,
+          requestedQuantity,
+          previousQuantity: currentQuantity,
+          newQuantity,
+        })
+
+        // Check for low stock alert
+        if (newQuantity <= (product.inventory?.lowStockThreshold || 5)) {
+          logger.warn('Low stock alert', 'API:orders', {
+            productId: item.product,
+            productTitle: product.title,
+            currentQuantity: newQuantity,
+            lowStockThreshold: product.inventory?.lowStockThreshold || 5,
+          })
+          // TODO: Send admin notification for low stock
+        }
+      }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error
+      }
+      logger.error(
+        'Error processing inventory for product',
+        'API:orders',
+        error instanceof Error ? error : undefined,
+        {
+          productId: item.product,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      )
+      throw new ApiError('Failed to process inventory', 500, 'INVENTORY_ERROR')
+    }
+  }
+}
 
 // GET endpoint for retrieving orders
 export const GET = withErrorHandling(async (request: NextRequest) => {

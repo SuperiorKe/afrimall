@@ -157,19 +157,12 @@ export function CheckoutForm() {
           ) : (
             <div />
           )}
-          {currentStep < steps.length ? (
+          {currentStep < steps.length && (
             <Button
               onClick={handleNext}
               className="bg-gradient-to-r from-afrimall-orange to-afrimall-red hover:from-afrimall-red hover:to-afrimall-orange text-white font-semibold"
             >
               Continue to {steps.find((step) => step.id === currentStep + 1)?.name} →
-            </Button>
-          ) : (
-            <Button
-              className="bg-gradient-to-r from-afrimall-green to-green-600 hover:from-green-600 hover:to-afrimall-green text-white font-bold"
-              disabled={cartLoading || !cart || cart.items.length === 0}
-            >
-              🛍️ Place Order
             </Button>
           )}
         </div>
