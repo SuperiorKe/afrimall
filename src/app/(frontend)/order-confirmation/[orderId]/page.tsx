@@ -27,19 +27,19 @@ interface OrderItem {
 
 interface Order {
   id: string
-  orderNumber: string
+  orderNumber?: string
   status: string
-  total: number
-  currency: string
+  total?: number
+  currency?: string
   items: OrderItem[]
   customer: {
     id: string
     email: string
   }
-  shipping: {
-    method: string
-    cost: number
-    address: {
+  shipping?: {
+    method?: string
+    cost?: number
+    address?: {
       firstName: string
       lastName: string
       address1: string
@@ -50,12 +50,25 @@ interface Order {
       country: string
     }
   }
-  payment: {
-    method: string
-    status: string
-    reference: string
+  shippingAddress?: {
+    firstName: string
+    lastName: string
+    address1: string
+    address2?: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
   }
-  createdAt: string
+  shippingMethod?: string
+  payment?: {
+    method?: string
+    status?: string
+    reference?: string
+  }
+  paymentMethod?: string
+  paymentStatus?: string
+  createdAt?: string
 }
 
 export default function OrderConfirmationPage() {

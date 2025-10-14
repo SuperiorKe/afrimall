@@ -118,7 +118,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Helper function to process pending operations when back online
-  const processPendingOperations = async () => {
+  const processPendingOperations = useCallback(async () => {
     if (pendingOperations.length > 0 && isOnline) {
       console.log(`Processing ${pendingOperations.length} pending operations`)
       const operations = [...pendingOperations]
@@ -132,7 +132,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-  }
+  }, [pendingOperations, isOnline])
 
   // Optimistic update helper
   const optimisticUpdate = (updateFn: (currentCart: Cart | null) => Cart | null) => {
@@ -415,7 +415,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [lastSyncTime, loadCart])
+  }, [lastSyncTime, loadCart, processPendingOperations])
 
   // Periodic sync - refresh cart every 5 minutes if user is active
   useEffect(() => {
