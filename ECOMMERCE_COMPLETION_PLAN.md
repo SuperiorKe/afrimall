@@ -323,6 +323,8 @@
 | Dec 2024 | Hotfix | Card Validation Fix | ✅ Complete | Added card completeness validation and improved Stripe error handling |
 | Dec 2024 | Hotfix | Production Schema Fix | ✅ Complete | Removed _verified field and made image optional for production compatibility |
 | Dec 2024 | Hotfix | Order Confirmation Redirect | ✅ Complete | Fixed redirect after order creation with flexible order ID extraction |
+| Dec 2024 | Hotfix | Order Confirmation Page Fix | ✅ Complete | Fixed data structure mismatch in order confirmation page |
+| Dec 2024 | UX Fix | Remove Duplicate Card Entry | ✅ Complete | Removed CardElement from Step 4, kept only in Step 5 for single card entry |
 
 ---
 

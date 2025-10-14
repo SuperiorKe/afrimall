@@ -61,7 +61,7 @@ interface Order {
 export default function OrderConfirmationPage() {
   const params = useParams()
   const orderId = params.orderId as string
-  
+
   const [order, setOrder] = useState<Order | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -71,13 +71,17 @@ export default function OrderConfirmationPage() {
       try {
         setLoading(true)
         const response = await fetch(`/api/orders/${orderId}`)
-        
+
         if (!response.ok) {
           throw new Error('Failed to fetch order')
         }
-        
+
         const data = await response.json()
-        setOrder(data.data.order)
+        console.log('Order confirmation - API response:', data)
+
+        // Handle different response structures
+        const orderData = data.data?.order || data.data || data
+        setOrder(orderData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load order')
       } finally {
@@ -138,7 +142,9 @@ export default function OrderConfirmationPage() {
           <div className="text-red-600 mb-4">
             <Package className="h-16 w-16 mx-auto mb-4" />
             <h1 className="text-2xl font-bold mb-2">Order Not Found</h1>
-            <p className="text-gray-600 mb-6">{error || 'The order you are looking for could not be found.'}</p>
+            <p className="text-gray-600 mb-6">
+              {error || 'The order you are looking for could not be found.'}
+            </p>
           </div>
           <Link href="/">
             <Button>Return to Home</Button>
@@ -156,7 +162,9 @@ export default function OrderConfirmationPage() {
           <CheckCircle className="h-16 w-16 mx-auto mb-4" />
         </div>
         <h1 className="text-3xl font-bold mb-2">Order Confirmed!</h1>
-        <p className="text-gray-600">Thank you for your purchase. Your order has been successfully placed.</p>
+        <p className="text-gray-600">
+          Thank you for your purchase. Your order has been successfully placed.
+        </p>
       </div>
 
       {/* Order Summary Card */}
@@ -180,24 +188,50 @@ export default function OrderConfirmationPage() {
                 Order Details
               </h3>
               <div className="space-y-2 text-sm">
-                <p><span className="font-medium">Order Number:</span> {order.orderNumber}</p>
-                <p><span className="font-medium">Date:</span> {new Date(order.createdAt).toLocaleDateString()}</p>
-                <p><span className="font-medium">Total:</span> ${order.total.toFixed(2)} {order.currency}</p>
-                <p><span className="font-medium">Payment Method:</span> {order.payment.method}</p>
+                <p>
+                  <span className="font-medium">Order Number:</span> {order.orderNumber || order.id}
+                </p>
+                <p>
+                  <span className="font-medium">Date:</span>{' '}
+                  {new Date(order.createdAt || Date.now()).toLocaleDateString()}
+                </p>
+                <p>
+                  <span className="font-medium">Total:</span> ${order.total?.toFixed(2) || '0.00'}{' '}
+                  {order.currency || 'USD'}
+                </p>
+                <p>
+                  <span className="font-medium">Payment Method:</span>{' '}
+                  {order.payment?.method || order.paymentMethod || 'Credit Card'}
+                </p>
               </div>
             </div>
-            
+
             <div>
               <h3 className="font-semibold mb-2 flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Shipping Address
               </h3>
               <div className="text-sm">
-                <p>{order.shipping.address.firstName} {order.shipping.address.lastName}</p>
-                <p>{order.shipping.address.address1}</p>
-                {order.shipping.address.address2 && <p>{order.shipping.address.address2}</p>}
-                <p>{order.shipping.address.city}, {order.shipping.address.state} {order.shipping.address.postalCode}</p>
-                <p>{order.shipping.address.country}</p>
+                {order.shipping?.address || order.shippingAddress ? (
+                  <>
+                    <p>
+                      {(order.shipping?.address || order.shippingAddress)?.firstName}{' '}
+                      {(order.shipping?.address || order.shippingAddress)?.lastName}
+                    </p>
+                    <p>{(order.shipping?.address || order.shippingAddress)?.address1}</p>
+                    {(order.shipping?.address || order.shippingAddress)?.address2 && (
+                      <p>{(order.shipping?.address || order.shippingAddress)?.address2}</p>
+                    )}
+                    <p>
+                      {(order.shipping?.address || order.shippingAddress)?.city},{' '}
+                      {(order.shipping?.address || order.shippingAddress)?.state}{' '}
+                      {(order.shipping?.address || order.shippingAddress)?.postalCode}
+                    </p>
+                    <p>{(order.shipping?.address || order.shippingAddress)?.country}</p>
+                  </>
+                ) : (
+                  <p className="text-gray-500">Address information not available</p>
+                )}
               </div>
             </div>
           </div>
@@ -223,9 +257,7 @@ export default function OrderConfirmationPage() {
                 </div>
                 <div className="flex-1">
                   <h4 className="font-medium">{item.product.title}</h4>
-                  {item.variant && (
-                    <p className="text-sm text-gray-600">{item.variant.title}</p>
-                  )}
+                  {item.variant && <p className="text-sm text-gray-600">{item.variant.title}</p>}
                   <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
                 </div>
                 <div className="text-right">
@@ -235,16 +267,16 @@ export default function OrderConfirmationPage() {
               </div>
             ))}
           </div>
-          
+
           <Separator className="my-6" />
-          
+
           <div className="flex justify-between items-center">
             <div className="text-sm text-gray-600">
-              <p>Shipping: {order.shipping.method}</p>
-              <p>Payment: {order.payment.status}</p>
+              <p>Shipping: {order.shipping?.method || order.shippingMethod || 'Standard'}</p>
+              <p>Payment: {order.payment?.status || order.paymentStatus || 'Paid'}</p>
             </div>
             <div className="text-right">
-              <p className="text-lg font-bold">Total: ${order.total.toFixed(2)}</p>
+              <p className="text-lg font-bold">Total: ${order.total?.toFixed(2) || '0.00'}</p>
             </div>
           </div>
         </CardContent>
@@ -263,27 +295,33 @@ export default function OrderConfirmationPage() {
               </div>
               <div>
                 <h4 className="font-medium">Order Processing</h4>
-                <p className="text-sm text-gray-600">We'll review your order and prepare it for shipping.</p>
+                <p className="text-sm text-gray-600">
+                  We'll review your order and prepare it for shipping.
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                 <span className="text-blue-600 font-semibold text-sm">2</span>
               </div>
               <div>
                 <h4 className="font-medium">Shipping Confirmation</h4>
-                <p className="text-sm text-gray-600">You'll receive an email with tracking information once your order ships.</p>
+                <p className="text-sm text-gray-600">
+                  You'll receive an email with tracking information once your order ships.
+                </p>
               </div>
             </div>
-            
+
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                 <span className="text-blue-600 font-semibold text-sm">3</span>
               </div>
               <div>
                 <h4 className="font-medium">Delivery</h4>
-                <p className="text-sm text-gray-600">Your order will be delivered to the address you provided.</p>
+                <p className="text-sm text-gray-600">
+                  Your order will be delivered to the address you provided.
+                </p>
               </div>
             </div>
           </div>
@@ -298,16 +336,19 @@ export default function OrderConfirmationPage() {
           </Button>
         </Link>
         <Link href="/account/orders">
-          <Button className="w-full sm:w-auto">
-            View My Orders
-          </Button>
+          <Button className="w-full sm:w-auto">View My Orders</Button>
         </Link>
       </div>
 
       {/* Contact Support */}
       <div className="text-center mt-8 text-sm text-gray-600">
         <p>Have questions about your order?</p>
-        <p>Contact our support team at <a href="mailto:support@afrimall.com" className="text-blue-600 hover:underline">support@afrimall.com</a></p>
+        <p>
+          Contact our support team at{' '}
+          <a href="mailto:support@afrimall.com" className="text-blue-600 hover:underline">
+            support@afrimall.com
+          </a>
+        </p>
       </div>
     </div>
   )
