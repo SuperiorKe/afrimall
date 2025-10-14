@@ -73,7 +73,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         customerGroup: 'regular',
         // Generate a temporary password for checkout customers
         password: `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        _verified: true, // Skip email verification for checkout customers
+        // Note: _verified field removed - doesn't exist in schema
       },
     })
 
