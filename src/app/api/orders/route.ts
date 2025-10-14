@@ -212,22 +212,18 @@ async function validateAndReserveInventory(payload: any, items: any[]) {
       if (error instanceof ApiError) {
         throw error
       }
-      logger.error('Error processing inventory for product', 'API:orders', {
-        productId: item.product,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      })
+      logger.error(
+        'Error processing inventory for product',
+        'API:orders',
+        error instanceof Error ? error : undefined,
+        {
+          productId: item.product,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+      )
       throw new ApiError('Failed to process inventory', 500, 'INVENTORY_ERROR')
     }
   }
-}
-
-// Helper function to generate order number
-function generateOrderNumber(): string {
-  const timestamp = Date.now()
-  const random = Math.floor(Math.random() * 1000)
-    .toString()
-    .padStart(3, '0')
-  return `AFR${timestamp}${random}`
 }
 
 // GET endpoint for retrieving orders
