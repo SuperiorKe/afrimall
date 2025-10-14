@@ -242,16 +242,28 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
 
       const data = await response.json()
 
+      console.log('Customer API response:', { status: response.status, data })
+
       if (data.success) {
         console.log('Customer created successfully:', data.data.id)
         setCustomerId(data.data.id)
         return data.data.id
       } else {
-        console.error('Failed to create customer:', data.message)
+        console.error('Failed to create customer:', {
+          message: data.message,
+          error: data.error,
+          details: data.details,
+        })
         return null
       }
     } catch (error) {
       console.error('Error creating customer:', error)
+      if (error instanceof Error) {
+        console.error('Error details:', {
+          message: error.message,
+          stack: error.stack,
+        })
+      }
       return null
     }
   }
@@ -275,38 +287,13 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
         throw new Error('Shipping address is required')
       }
 
-      const orderData = {
-        items: [], // This will be populated from cart context
-        total: 0, // This will be calculated from cart
-        currency: 'USD',
-        customer: customerId,
-        shippingAddress: formData.shippingAddress,
-        billingAddress: formData.sameAsBilling ? formData.shippingAddress : formData.billingAddress,
-        paymentMethod: 'credit_card',
-        paymentStatus: 'paid',
-        paymentReference: paymentIntentId,
-        stripePaymentIntentId: paymentIntentId,
-        shippingMethod: formData.shippingMethod || 'standard',
-        specialInstructions: '',
-        status: 'confirmed',
-      }
+      // Note: This function is not currently used in the checkout flow
+      // The actual order creation happens in OrderReview.tsx with proper cart data
+      // This function is kept for potential future use or API consistency
 
-      const response = await fetch('/api/orders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(orderData),
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to create order')
-      }
-
-      const result = await response.json()
-      const newOrderId = result.data.id
-      setOrderId(newOrderId)
-      return result
+      throw new Error(
+        'This createOrder function is deprecated. Use the one in OrderReview.tsx instead.',
+      )
     } catch (error) {
       console.error('Error creating order:', error)
       throw error

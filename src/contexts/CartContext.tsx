@@ -8,6 +8,7 @@ export interface CartItem {
     id: string
     title: string
     price: number
+    sku?: string
     images: Array<{
       url: string
       alt: string
@@ -55,7 +56,7 @@ interface CartContextType {
     quantity: number,
   ) => Promise<boolean>
   removeFromCart: (productId: string, variantId?: string) => Promise<boolean>
-  clearCart: () => Promise<void>
+  clearCart: () => Promise<boolean>
   refreshCart: () => void
   retryFailedOperation: () => Promise<void>
 }
@@ -345,7 +346,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const clearCart = async () => {
+  const clearCart = async (): Promise<boolean> => {
     try {
       setError(null)
 
@@ -364,12 +365,18 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (data.success) {
         setCart(null)
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: null }))
+        return true
       } else {
-        setError(data.message || 'Failed to clear cart')
+        const errorMessage = data.message || 'Failed to clear cart'
+        setError(errorMessage)
+        console.error('Cart clearing failed:', errorMessage)
+        return false
       }
     } catch (error) {
       console.error('Error clearing cart:', error)
-      setError('Failed to clear cart. Please try again.')
+      const errorMessage = 'Failed to clear cart. Please try again.'
+      setError(errorMessage)
+      return false
     }
   }
 

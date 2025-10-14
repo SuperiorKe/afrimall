@@ -109,8 +109,10 @@ export const Orders: CollectionConfig = {
             },
             {
               name: 'image',
-              type: 'upload',
-              relationTo: 'media',
+              type: 'text',
+              admin: {
+                description: 'Product image URL at time of order',
+              },
             },
           ],
         },

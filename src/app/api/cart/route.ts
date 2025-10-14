@@ -314,6 +314,7 @@ function transformCartData(cart: any) {
         id: item.product?.id,
         title: item.product?.title,
         price: item.product?.price,
+        sku: item.product?.sku,
         images:
           item.product?.images?.map((img: any) => ({
             url:

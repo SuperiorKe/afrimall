@@ -700,7 +700,10 @@ export interface Order {
     productSnapshot: {
       title: string;
       sku: string;
-      image?: (number | null) | Media;
+      /**
+       * Product image URL at time of order
+       */
+      image?: string | null;
     };
     id?: string | null;
   }[];

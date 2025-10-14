@@ -16,10 +16,11 @@ export function OrderReview() {
   const { formData, setCurrentStep, stripePayment, resetPaymentState, customerId, createCustomer } =
     useCheckout()
   const { contactInfo, shippingAddress, billingAddress, sameAsBilling } = formData
-  const { cart } = useCart()
+  const { cart, clearCart } = useCart()
 
   const [isProcessing, setIsProcessing] = useState(false)
   const [paymentError, setPaymentError] = useState<string | null>(null)
+  const [isCardComplete, setIsCardComplete] = useState(false)
 
   // Try to create customer when component mounts if all required data is available
   useEffect(() => {
@@ -55,6 +56,22 @@ export function OrderReview() {
         throw new Error('Customer ID is required')
       }
 
+      if (!cartItems || cartItems.length === 0) {
+        throw new Error('Cart is empty - cannot create order')
+      }
+
+      if (!shippingAddress?.firstName || !shippingAddress?.lastName) {
+        throw new Error('Shipping address is incomplete')
+      }
+
+      console.log('Creating order with data:', {
+        itemCount: cartItems.length,
+        subtotal,
+        total,
+        customerId,
+        paymentIntentId,
+      })
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {
@@ -70,7 +87,7 @@ export function OrderReview() {
             totalPrice: item.totalPrice,
             productSnapshot: {
               title: item.product.title,
-              sku: item.product.id, // Using ID as SKU for now
+              sku: item.product.sku || item.product.id, // Use actual SKU if available
               image: item.product.images[0]?.url || null,
             },
           })),
@@ -130,14 +147,33 @@ export function OrderReview() {
       return
     }
 
+    if (!isCardComplete) {
+      setPaymentError('Please complete your card details before placing the order.')
+      return
+    }
+
     setIsProcessing(true)
     setPaymentError(null)
 
     try {
+      // Get the CardElement
+      const cardElement = elements.getElement(CardElement)
+
+      if (!cardElement) {
+        setPaymentError('Payment method not found. Please enter your card details above.')
+        setIsProcessing(false)
+        return
+      }
+
+      console.log('Confirming payment with Stripe...', {
+        clientSecret: stripePayment.clientSecret,
+        hasCardElement: !!cardElement,
+      })
+
       // Confirm the payment with Stripe
       const { error, paymentIntent } = await stripe.confirmCardPayment(stripePayment.clientSecret, {
         payment_method: {
-          card: elements.getElement(CardElement)!,
+          card: cardElement,
           billing_details: {
             name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
             email: contactInfo.email,
@@ -154,6 +190,8 @@ export function OrderReview() {
         },
       })
 
+      console.log('Stripe response:', { error, paymentIntent })
+
       if (error) {
         setPaymentError(error.message || 'Payment failed. Please try again.')
         setIsProcessing(false)
@@ -168,7 +206,14 @@ export function OrderReview() {
         resetPaymentState()
 
         // Clear cart after successful order
-        // TODO: Implement cart clearing after order creation
+        const cartCleared = await clearCart()
+        if (cartCleared) {
+          console.log('Cart cleared successfully after order creation')
+        } else {
+          console.warn('Failed to clear cart after order creation - order was still successful')
+          // Don't block the success flow if cart clearing fails
+          // The order was created successfully, so we proceed
+        }
 
         // Redirect to order confirmation page
         setTimeout(() => {
@@ -318,6 +363,45 @@ export function OrderReview() {
           </div>
         )}
 
+        {/* Payment Method - CardElement for Stripe */}
+        <div className="bg-gray-50 p-6 rounded-lg mb-6">
+          <h3 className="text-lg font-medium mb-4">Payment Method</h3>
+          <div className="border border-gray-300 rounded-md p-3 bg-white">
+            <CardElement
+              options={{
+                style: {
+                  base: {
+                    fontSize: '16px',
+                    color: '#424770',
+                    '::placeholder': {
+                      color: '#aab7c4',
+                    },
+                  },
+                  invalid: {
+                    color: '#9e2146',
+                  },
+                },
+                hidePostalCode: true,
+              }}
+              onChange={(e) => {
+                setIsCardComplete(e.complete)
+                if (e.error) {
+                  setPaymentError(e.error.message)
+                } else {
+                  setPaymentError(null)
+                }
+              }}
+            />
+          </div>
+          <p className="text-sm text-gray-500 mt-2">
+            {isCardComplete ? (
+              <span className="text-green-600">✓ Card details complete</span>
+            ) : (
+              'Please enter your card details to complete the payment.'
+            )}
+          </p>
+        </div>
+
         {/* Customer Status */}
         {!customerId && (
           <div className="rounded-md bg-yellow-50 p-4 mb-6">
@@ -380,7 +464,7 @@ export function OrderReview() {
 
           <Button
             onClick={handlePlaceOrder}
-            disabled={isProcessing || !stripePayment.clientSecret || !customerId}
+            disabled={isProcessing || !stripePayment.clientSecret || !customerId || !isCardComplete}
             className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {isProcessing ? (
