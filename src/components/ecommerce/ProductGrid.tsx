@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { ProductCard } from './ProductCard'
 import { MobileProductPagination } from './MobileProductPagination'
@@ -83,11 +83,31 @@ export function ProductGrid({
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
+  
+  // Ref to track current fetch request and prevent duplicate fetches
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const isFetchingRef = useRef(false)
 
   // Fetch products from API
   const fetchProducts = useCallback(
     async (page: number = 1, append: boolean = false) => {
+      // Prevent duplicate requests
+      if (isFetchingRef.current && !append) {
+        return
+      }
+
+      // Cancel any pending request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Create new AbortController for this request
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
       try {
+        isFetchingRef.current = true
+
         if (append) {
           setLoadingMore(true)
         } else {
@@ -124,13 +144,19 @@ export function ProductGrid({
         if (currentMinPrice) params.set('minPrice', currentMinPrice)
         if (currentMaxPrice) params.set('maxPrice', currentMaxPrice)
 
-        const response = await fetch(`/api/products?${params.toString()}`)
+        const response = await fetch(`/api/products?${params.toString()}`, {
+          signal: controller.signal,
+        })
         const data = await response.json()
 
         if (data.success) {
           if (append) {
-            // For infinite scroll, append new products
-            setProducts((prev) => [...prev, ...data.data.products])
+            // For infinite scroll, append new products using functional update
+            setProducts((prev) => {
+              const existingIds = new Set(prev.map(p => p.id))
+              const newProducts = data.data.products.filter((p: Product) => !existingIds.has(p.id))
+              return [...prev, ...newProducts]
+            })
           } else {
             // For regular pagination, replace products
             setProducts(data.data.products)
@@ -138,20 +164,30 @@ export function ProductGrid({
 
           setPagination(data.data.pagination)
 
-          // Notify parent component of updates
+          // Notify parent component of updates using functional approach
           if (onProductsUpdate) {
-            const updatedProducts = append
-              ? [...products, ...data.data.products]
-              : data.data.products
-            onProductsUpdate(updatedProducts, data.data.pagination)
+            if (append) {
+              setProducts((currentProducts) => {
+                onProductsUpdate(currentProducts, data.data.pagination)
+                return currentProducts
+              })
+            } else {
+              onProductsUpdate(data.data.products, data.data.pagination)
+            }
           }
         } else {
           setError(data.message || 'Failed to fetch products')
         }
-      } catch (err) {
+      } catch (err: any) {
+        // Ignore abort errors
+        if (err.name === 'AbortError') {
+          console.log('Request cancelled')
+          return
+        }
         setError('Failed to fetch products. Please try again.')
         console.error('Error fetching products:', err)
       } finally {
+        isFetchingRef.current = false
         if (append) {
           setLoadingMore(false)
         } else {
@@ -159,7 +195,7 @@ export function ProductGrid({
         }
       }
     },
-    [searchQuery, categoryFilter, searchParams, products, onProductsUpdate],
+    [searchQuery, categoryFilter, searchParams, onProductsUpdate],
   )
 
   // Handle page changes
@@ -172,28 +208,28 @@ export function ProductGrid({
 
   // Handle infinite scroll load more
   const handleLoadMore = useCallback(() => {
-    if (pagination && pagination.hasNextPage && !loadingMore) {
+    if (pagination && pagination.hasNextPage && !loadingMore && !isFetchingRef.current) {
       fetchProducts(pagination.page + 1, true)
     }
   }, [pagination, loadingMore, fetchProducts])
 
-  // Reset products when filters change
+  // Cleanup function to cancel pending requests
   useEffect(() => {
-    if (!initialProducts.length) {
-      fetchProducts(1)
-    } else {
-      // Reset to initial products when filters change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+    }
+  }, [])
+
+  // Reset products when filters change (but not on initial mount)
+  useEffect(() => {
+    // Skip on initial mount
+    if (initialProducts.length > 0) {
       setProducts(initialProducts)
       setPagination(initialPagination)
     }
-  }, [
-    searchQuery,
-    categoryFilter,
-    fetchProducts,
-    initialProducts.length,
-    initialProducts,
-    initialPagination,
-  ])
+  }, [initialProducts, initialPagination])
 
   // Show loading state
   if (loading && !products.length) {

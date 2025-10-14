@@ -39,33 +39,81 @@ export function MobileProductPagination({
   const [showPageSizeSelector, setShowPageSizeSelector] = useState(false)
   const [jumpToPage, setJumpToPage] = useState('')
   const [showJumpTo, setShowJumpTo] = useState(false)
+  const [isToggling, setIsToggling] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const observerRef = useRef<HTMLDivElement>(null)
+  const toggleTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastLoadRef = useRef<number>(0)
 
-  // Infinite scroll implementation
+  // Handle toggle with debounce and state reset
+  const handleToggleInfiniteScroll = useCallback(() => {
+    // Clear any pending toggle
+    if (toggleTimeoutRef.current) {
+      clearTimeout(toggleTimeoutRef.current)
+    }
+
+    setIsToggling(true)
+
+    // Debounce the toggle action
+    toggleTimeoutRef.current = setTimeout(() => {
+      setIsInfiniteScroll((prev) => {
+        const newValue = !prev
+        
+        // If switching to pagination mode, reset to page 1
+        if (!newValue) {
+          const params = new URLSearchParams(searchParams)
+          params.set('page', '1')
+          router.push(`${pathname}?${params.toString()}`)
+        }
+        
+        return newValue
+      })
+      
+      setIsToggling(false)
+    }, 300)
+  }, [searchParams, pathname, router])
+
+  // Cleanup timeout on unmount
   useEffect(() => {
-    if (!isInfiniteScroll || !onLoadMore || !hasMoreProducts) return
+    return () => {
+      if (toggleTimeoutRef.current) {
+        clearTimeout(toggleTimeoutRef.current)
+      }
+    }
+  }, [])
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && !loading && hasMoreProducts) {
+  // Infinite scroll implementation with proper cleanup and throttling
+  useEffect(() => {
+    if (!isInfiniteScroll || !onLoadMore || !hasMoreProducts || isToggling) {
+      return
+    }
+
+    const handleIntersect = (entries: IntersectionObserverEntry[]) => {
+      if (entries[0].isIntersecting && !loading) {
+        // Throttle load more calls to once per 1 second
+        const now = Date.now()
+        if (now - lastLoadRef.current > 1000) {
+          lastLoadRef.current = now
           onLoadMore()
         }
-      },
-      {
-        threshold: 0.1,
-        rootMargin: '100px',
-      },
-    )
+      }
+    }
+
+    const observer = new IntersectionObserver(handleIntersect, {
+      threshold: 0.1,
+      rootMargin: '100px',
+    })
 
     if (observerRef.current) {
       observer.observe(observerRef.current)
     }
 
-    return () => observer.disconnect()
-  }, [isInfiniteScroll, onLoadMore, hasMoreProducts, loading])
+    return () => {
+      observer.disconnect()
+    }
+  }, [isInfiniteScroll, onLoadMore, hasMoreProducts, loading, isToggling])
 
   // Handle page size change
   const handlePageSizeChange = (newLimit: number) => {
@@ -321,21 +369,28 @@ export function MobileProductPagination({
       <div className="flex items-center justify-center space-x-4">
         {/* Toggle infinite scroll */}
         <div className="flex items-center space-x-2">
-          <label className="text-sm text-gray-600">Infinite scroll:</label>
+          <label className="text-sm text-gray-600 dark:text-gray-400">Infinite scroll:</label>
           <button
-            onClick={() => setIsInfiniteScroll(!isInfiniteScroll)}
+            onClick={handleToggleInfiniteScroll}
+            disabled={isToggling}
             className={cn(
-              'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
-              isInfiniteScroll ? 'bg-blue-600' : 'bg-gray-200',
+              'relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed',
+              isInfiniteScroll ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700',
             )}
+            aria-label={`${isInfiniteScroll ? 'Disable' : 'Enable'} infinite scroll`}
           >
             <span
               className={cn(
-                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform',
+                'inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200',
                 isInfiniteScroll ? 'translate-x-6' : 'translate-x-1',
               )}
             />
           </button>
+          {isToggling && (
+            <span className="text-xs text-gray-500 dark:text-gray-400 animate-pulse">
+              Loading...
+            </span>
+          )}
         </div>
 
         {/* Load more button for infinite scroll */}
