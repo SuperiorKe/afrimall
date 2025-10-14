@@ -193,11 +193,16 @@ export function ShoppingCartComponent({
       return (
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div className="absolute inset-0 bg-black bg-opacity-50" />
-          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
+          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-xl">
             <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b px-4 py-6">
-                <h2 className="text-lg font-semibold">Shopping Cart</h2>
-                <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Shopping Cart
+                </h2>
+                <button
+                  onClick={handleClose}
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                >
                   <X className="h-6 w-6" />
                 </button>
               </div>
@@ -242,22 +247,29 @@ export function ShoppingCartComponent({
       return (
         <div className="fixed inset-0 z-50 overflow-hidden">
           <div className="absolute inset-0 bg-black bg-opacity-50" />
-          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
+          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-xl">
             <div className="flex h-full flex-col">
-              <div className="flex items-center justify-between border-b px-4 py-6">
-                <h2 className="text-lg font-semibold">Shopping Cart</h2>
-                <button onClick={handleClose} className="text-gray-400 hover:text-gray-600">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 py-6">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Shopping Cart
+                </h2>
+                <button
+                  onClick={handleClose}
+                  className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                >
                   <X className="h-6 w-6" />
                 </button>
               </div>
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                  <p className="text-red-600 font-medium mb-2">Error loading cart</p>
-                  <p className="text-gray-500 text-sm mb-4">{error}</p>
+                  <p className="text-red-600 dark:text-red-400 font-medium mb-2">
+                    Error loading cart
+                  </p>
+                  <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">{error}</p>
                   <div className="flex items-center justify-center space-x-2">
                     {!isOnline && (
-                      <span className="text-yellow-600 text-sm flex items-center">
+                      <span className="text-yellow-600 dark:text-yellow-500 text-sm flex items-center">
                         <WifiOff className="h-4 w-4 mr-1" />
                         Offline
                       </span>
@@ -265,7 +277,7 @@ export function ShoppingCartComponent({
                     {showRetryButton && (
                       <button
                         onClick={handleRetry}
-                        className="flex items-center px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                        className="flex items-center px-3 py-1 bg-blue-600 dark:bg-blue-500 text-white text-sm rounded hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
                       >
                         <RefreshCw className="h-4 w-4 mr-1" />
                         Retry
@@ -314,7 +326,7 @@ export function ShoppingCartComponent({
     return (
       <div className="fixed inset-0 z-50 overflow-hidden">
         <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleClose} />
-        <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl">
+        <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-xl">
           <div className="flex h-full flex-col">
             {/* Header */}
             <div className="flex items-center justify-between border-b px-4 py-6">
@@ -348,8 +360,10 @@ export function ShoppingCartComponent({
               {!cart || cart.items.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full px-4">
                   <ShoppingBag className="h-16 w-16 text-gray-300 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Your cart is empty</h3>
-                  <p className="text-gray-500 text-center mb-6">
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                    Your cart is empty
+                  </h3>
+                  <p className="text-gray-500 dark:text-gray-400 text-center mb-6">
                     Add some items to your cart to get started.
                   </p>
                   <Link
@@ -458,8 +472,8 @@ export function ShoppingCartComponent({
 
             {/* Footer */}
             {cart && cart.items.length > 0 && (
-              <div className="border-t bg-gray-50 px-4 py-6">
-                <div className="flex items-center justify-between text-lg font-semibold mb-4">
+              <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-6">
+                <div className="flex items-center justify-between text-lg font-semibold text-gray-900 dark:text-white mb-4">
                   <span>Subtotal</span>
                   <span>{formatPrice(cart.subtotal)}</span>
                 </div>
@@ -473,7 +487,7 @@ export function ShoppingCartComponent({
                   </Link>
                   <Link
                     href="/products"
-                    className="w-full bg-white text-gray-900 py-3 px-4 rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors text-center block"
+                    className="w-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-3 px-4 rounded-lg border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center block"
                     onClick={handleClose}
                   >
                     Continue Shopping
@@ -492,8 +506,8 @@ export function ShoppingCartComponent({
     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700">
       <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between border-b px-6 py-6">
-          <h2 className="text-2xl font-semibold">Shopping Cart</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-6 py-6">
+          <h2 className="text-2xl font-semibold text-gray-900 dark:text-white">Shopping Cart</h2>
         </div>
 
         {/* Cart Content */}
@@ -599,7 +613,7 @@ export function ShoppingCartComponent({
 
         {/* Footer */}
         {cart && cart.items.length > 0 && (
-          <div className="border-t bg-gray-50 px-6 py-6">
+          <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-6 py-6">
             <div className="flex items-center justify-between text-lg font-semibold mb-4">
               <span>Subtotal</span>
               <span>{formatPrice(cart.subtotal)}</span>

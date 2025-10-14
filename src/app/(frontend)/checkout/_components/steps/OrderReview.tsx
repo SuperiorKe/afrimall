@@ -395,9 +395,9 @@ export function OrderReview() {
         )}
 
         {/* Payment Method - CardElement for Stripe */}
-        <div className="bg-gray-50 p-6 rounded-lg mb-6">
-          <h3 className="text-lg font-medium mb-4">Payment Method</h3>
-          <div className="border border-gray-300 rounded-md p-3 bg-white">
+        <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg mb-6">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Payment Method</h3>
+          <div className="border border-gray-300 dark:border-gray-600 rounded-md p-3 bg-white dark:bg-gray-900">
             <CardElement
               options={{
                 style: {
