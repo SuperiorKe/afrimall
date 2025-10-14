@@ -22,22 +22,22 @@ interface ProductsClientProps {
   categoryFilter?: string
 }
 
-export function ProductsClient({ 
+export function ProductsClient({
   initialProducts,
   initialPagination,
   categories,
   searchQuery,
-  categoryFilter
+  categoryFilter,
 }: ProductsClientProps) {
   const [isFilterSheetOpen, setFilterSheetOpen] = useState(false)
   const [isSortPopoverOpen, setSortPopoverOpen] = useState(false)
   const sortButtonRef = useRef<HTMLButtonElement>(null)
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 lg:gap-8">
       {/* Sidebar Filters - Hidden on Mobile */}
       <div className="hidden lg:block lg:col-span-1">
-        <div className="sticky top-28 space-y-6">
+        <div className="sticky top-24 space-y-6">
           <CategoryFilter categories={categories} selectedCategory={categoryFilter} />
           <ProductFilters />
         </div>
@@ -46,20 +46,20 @@ export function ProductsClient({
       {/* Products Grid */}
       <div className="lg:col-span-3">
         {/* Mobile Filter/Sort Buttons */}
-        <div className="flex items-center justify-between mb-6 lg:hidden">
+        <div className="flex items-center justify-between gap-3 mb-6 lg:hidden">
           <button
             onClick={() => setFilterSheetOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
           >
-            <Filter size={16} />
+            <Filter size={18} />
             <span>Filters</span>
           </button>
           <button
             ref={sortButtonRef}
             onClick={() => setSortPopoverOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium border rounded-lg"
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors shadow-sm"
           >
-            <ArrowUpDown size={16} />
+            <ArrowUpDown size={18} />
             <span>Sort By</span>
           </button>
         </div>
@@ -86,4 +86,3 @@ export function ProductsClient({
     </div>
   )
 }
-
