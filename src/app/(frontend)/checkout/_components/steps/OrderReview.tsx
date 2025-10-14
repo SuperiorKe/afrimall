@@ -121,6 +121,7 @@ export function OrderReview() {
       }
 
       const order = await response.json()
+      console.log('Order creation response:', order)
       return order
     } catch (error) {
       console.error('Error creating order:', error)
@@ -231,9 +232,23 @@ export function OrderReview() {
           // The order was created successfully, so we proceed
         }
 
+        // Extract order ID from response (handle different response structures)
+        const orderId = order?.data?.id || order?.id || order?.data?.doc?.id
+
+        console.log('Redirecting to order confirmation with ID:', orderId)
+
+        if (!orderId) {
+          console.error('No order ID found in response:', order)
+          setPaymentError(
+            'Order created but confirmation page unavailable. Please check your order history.',
+          )
+          setIsProcessing(false)
+          return
+        }
+
         // Redirect to order confirmation page
         setTimeout(() => {
-          router.push(`/order-confirmation/${order.data.id}`)
+          router.push(`/order-confirmation/${orderId}`)
         }, 2000)
       }
     } catch (error: unknown) {
