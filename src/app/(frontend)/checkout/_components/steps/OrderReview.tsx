@@ -132,6 +132,12 @@ export function OrderReview() {
   }
 
   const handlePlaceOrder = async () => {
+    // Prevent double submission
+    if (isProcessing) {
+      console.log('Order already being processed, ignoring duplicate request')
+      return
+    }
+
     // Final validation checks
     if (!customerId) {
       setPaymentError(
@@ -196,7 +202,17 @@ export function OrderReview() {
       console.log('Stripe response:', { error, paymentIntent })
 
       if (error) {
-        setPaymentError(error.message || 'Payment failed. Please try again.')
+        console.error('Stripe payment error:', error)
+
+        // Handle specific error cases
+        if (error.code === 'payment_intent_unexpected_state') {
+          setPaymentError(
+            'This payment has already been processed. Please refresh the page and try again.',
+          )
+        } else {
+          setPaymentError(error.message || 'Payment failed. Please try again.')
+        }
+
         setIsProcessing(false)
         return
       }
