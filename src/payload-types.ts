@@ -701,9 +701,9 @@ export interface Order {
       title: string;
       sku: string;
       /**
-       * Product image URL at time of order
+       * Product image at time of order (optional)
        */
-      image?: string | null;
+      image?: (number | null) | Media;
     };
     id?: string | null;
   }[];

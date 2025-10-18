@@ -24,7 +24,6 @@ type Props = {
 export const dynamic = 'force-dynamic'
 
 export default async function ProductsPage({ searchParams }: Props) {
-
   try {
     const params = await searchParams
     const {
@@ -133,14 +132,14 @@ export default async function ProductsPage({ searchParams }: Props) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         {/* Header */}
-        <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center">
-              <Logo className="h-16 w-16 mx-auto mb-6" />
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
+            <div className="text-center max-w-4xl mx-auto">
+              <Logo className="h-16 w-16 mx-auto mb-6 drop-shadow-sm" />
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
                 Discover African Treasures
               </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
                 Explore our curated collection of authentic African products, from handcrafted
                 jewelry to traditional textiles and contemporary art.
               </p>
@@ -149,7 +148,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         </div>
 
         {/* Filters and Products */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
           <ProductsClient
             initialProducts={transformedProducts}
             initialPagination={paginationInfo}
@@ -165,20 +164,20 @@ export default async function ProductsPage({ searchParams }: Props) {
     // Return a fallback UI during build
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center">
-              <Logo className="h-16 w-16 mx-auto mb-6" />
-              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+        <div className="bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-16">
+            <div className="text-center max-w-4xl mx-auto">
+              <Logo className="h-16 w-16 mx-auto mb-6 drop-shadow-sm" />
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
                 Discover African Treasures
               </h1>
-              <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+              <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed">
                 Explore our curated collection of authentic African products.
               </p>
             </div>
           </div>
         </div>
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
           <div className="text-center py-16">
             <p className="text-gray-500 dark:text-gray-400">Products will be loaded at runtime.</p>
           </div>
@@ -189,7 +188,6 @@ export default async function ProductsPage({ searchParams }: Props) {
 }
 
 export const metadata: Metadata = {
-
   title: 'Products - AfriMall',
   description:
     'Browse our collection of authentic African products, from traditional crafts to modern fashion and home decor.',

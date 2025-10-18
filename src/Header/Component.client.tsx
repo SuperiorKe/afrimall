@@ -34,7 +34,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
 
   return (
     <header
-      className="bg-white dark:bg-gray-900 border-b border-border shadow-sm sticky top-0 z-50"
+      className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shadow-sm sticky top-0 z-50"
       {...(theme ? { 'data-theme': theme } : {})}
     >
       {/* Top promotional banner */}
@@ -54,7 +54,6 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
           </div>
         </div>
       )}
-
 
       <div className="container">
         <div className="py-3">
@@ -82,10 +81,10 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
                 >
                   Sign In
                 </Link>
-                <span className="text-gray-400">|</span>
+                <span className="text-gray-400 dark:text-gray-500">|</span>
                 <Link
                   href="/auth/register"
-                  className="text-sm bg-afrimall-orange text-white px-3 py-1.5 rounded-md hover:bg-afrimall-red transition-colors font-medium"
+                  className="text-sm bg-afrimall-orange dark:bg-afrimall-orange text-white px-3 py-1.5 rounded-md hover:bg-afrimall-red dark:hover:bg-afrimall-red transition-colors font-medium shadow-sm"
                 >
                   Register
                 </Link>
