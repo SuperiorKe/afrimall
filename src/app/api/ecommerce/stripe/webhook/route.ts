@@ -117,8 +117,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
             data: {
               paymentStatus: 'pending',
               paymentReference: paymentIntent.id,
-              notes: 'Payment requires additional authentication',
-            },
+              notes: [{
+                id: Date.now().toString(),
+                type: 'system',
+                content: 'Payment requires additional authentication',
+                author: 'system',
+                isVisibleToCustomer: false,
+                createdAt: new Date().toISOString(),
+              }],
+            } as any,
           })
 
           logger.info(`Order ${orderId} requires payment action`, 'API:stripe/webhook')
@@ -148,8 +155,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
             id: order.id,
             data: {
               status: 'cancelled',
-              internalNotes: `Dispute created: ${dispute.reason}`,
-            },
+              notes: [{
+                id: Date.now().toString(),
+                type: 'system',
+                content: `Dispute created: ${dispute.reason}`,
+                author: 'system',
+                isVisibleToCustomer: false,
+                createdAt: new Date().toISOString(),
+              }],
+            } as any,
           })
 
           logger.info(`Dispute created for order ${order.id}`, 'API:stripe/webhook')
