@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Star } from 'lucide-react'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface ProductRatingProps {
   rating: number

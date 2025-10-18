@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { Truck, Shield, RotateCcw } from 'lucide-react'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface ProductFeaturesProps {
   className?: string

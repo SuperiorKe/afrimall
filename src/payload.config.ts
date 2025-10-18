@@ -17,11 +17,11 @@ import { ProductVariants } from './collections/ProductVariants'
 import { ShoppingCart } from './collections/ShoppingCart'
 import { Users } from './collections/Users'
 import { PayloadPreferences } from './collections/PayloadPreferences'
-import { Footer } from './Footer/config'
-import { Header } from './Header/config'
+import { Footer } from './components/layout/Footer/config'
+import { Header } from './components/layout/Header/config'
 import { plugins } from './plugins'
 import { defaultLexical } from '@/fields/defaultLexical'
-import { getServerSideURL } from './utilities/getURL'
+import { getServerSideURL } from './utils/helpers/getURL'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)

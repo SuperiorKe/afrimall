@@ -1,5 +1,5 @@
 import React from 'react'
-import { CustomerRegisterForm } from '@/components/ecommerce/CustomerRegisterForm'
+import { CustomerRegisterForm } from '@/components/forms/CustomerRegisterForm'
 import type { Metadata } from 'next'
 import Link from 'next/link'
 

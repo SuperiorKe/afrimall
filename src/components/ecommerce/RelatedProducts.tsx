@@ -2,7 +2,7 @@
 
 import React from 'react'
 import { ProductCard } from './ProductCard'
-import type { TransformedProduct } from '@/utilities/productTransform'
+import type { TransformedProduct } from '@/lib/products/productTransform'
 
 interface RelatedProductsProps {
   products: TransformedProduct[]

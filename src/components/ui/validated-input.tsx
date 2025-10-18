@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 import { FieldError } from './form-error'
 
 interface ValidatedInputProps extends React.InputHTMLAttributes<HTMLInputElement> {

@@ -12,7 +12,7 @@ import { searchFields } from '@/search/fieldOverrides'
 import { beforeSyncWithSearch } from '@/search/beforeSync'
 
 import { Product, Category } from '@/payload-types'
-import { getServerSideURL } from '@/utilities/getURL'
+import { getServerSideURL } from '@/utils/helpers/getURL'
 
 const generateTitle: GenerateTitle<Product | Category> = ({ doc }) => {
   return doc?.title ? `${doc.title} | Afrimall` : 'Afrimall'

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { ChevronLeft, ChevronRight, MoreHorizontal, Loader2 } from 'lucide-react'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface PaginationInfo {
   totalDocs: number
@@ -60,17 +60,17 @@ export function MobileProductPagination({
     toggleTimeoutRef.current = setTimeout(() => {
       setIsInfiniteScroll((prev) => {
         const newValue = !prev
-        
+
         // If switching to pagination mode, reset to page 1
         if (!newValue) {
           const params = new URLSearchParams(searchParams)
           params.set('page', '1')
           router.push(`${pathname}?${params.toString()}`)
         }
-        
+
         return newValue
       })
-      
+
       setIsToggling(false)
     }, 300)
   }, [searchParams, pathname, router])

@@ -352,15 +352,30 @@ export const Products: CollectionConfig = {
               `LOW STOCK ALERT: Product "${doc.title}" (${doc.sku}) has ${currentQuantity} units remaining (threshold: ${lowStockThreshold})`,
             )
 
-            // TODO: Send admin notification email
-            // TODO: Create admin dashboard alert
+            // Send admin notification email
+            try {
+              const { queueAdminNotificationEmail } = await import('../lib/email/emailQueue')
+              await queueAdminNotificationEmail(
+                'Low Stock Alert',
+                `Product "${doc.title}" (SKU: ${doc.sku}) has ${currentQuantity} units remaining (threshold: ${lowStockThreshold}). Consider restocking soon.`,
+              )
+            } catch (error) {
+              console.error('Error sending low stock alert email:', error)
+            }
           } else if (currentQuantity === 0) {
             // Log out of stock alert
             console.warn(`OUT OF STOCK: Product "${doc.title}" (${doc.sku}) is now out of stock`)
 
-            // TODO: Send admin notification email
-            // TODO: Create admin dashboard alert
-            // TODO: Update product status if needed
+            // Send admin notification email
+            try {
+              const { queueAdminNotificationEmail } = await import('../lib/email/emailQueue')
+              await queueAdminNotificationEmail(
+                'Out of Stock Alert',
+                `Product "${doc.title}" (SKU: ${doc.sku}) is now out of stock. Consider updating product status or restocking immediately.`,
+              )
+            } catch (error) {
+              console.error('Error sending out of stock alert email:', error)
+            }
           }
         }
       },

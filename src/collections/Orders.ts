@@ -414,19 +414,80 @@ export const Orders: CollectionConfig = {
       },
     },
     {
-      name: 'notes',
+      name: 'customerNotes',
       type: 'textarea',
       admin: {
-        description: 'Order notes (customer or admin)',
+        description: 'Customer notes (visible to customer)',
       },
     },
     {
-      name: 'internalNotes',
+      name: 'adminNotes',
       type: 'textarea',
       admin: {
-        description: 'Internal notes (admin only)',
+        description: 'Admin notes (internal only)',
         condition: (data, siblingData, { user }) => user?.collection === 'users',
       },
+    },
+    {
+      name: 'notes',
+      type: 'array',
+      admin: {
+        description: 'Order notes history',
+      },
+      fields: [
+        {
+          name: 'id',
+          type: 'text',
+          required: true,
+          admin: {
+            readOnly: true,
+          },
+        },
+        {
+          name: 'type',
+          type: 'select',
+          required: true,
+          options: [
+            { label: 'Internal', value: 'internal' },
+            { label: 'Customer', value: 'customer' },
+            { label: 'System', value: 'system' },
+          ],
+          defaultValue: 'internal',
+        },
+        {
+          name: 'content',
+          type: 'textarea',
+          required: true,
+        },
+        {
+          name: 'author',
+          type: 'text',
+          required: true,
+          admin: {
+            readOnly: true,
+          },
+        },
+        {
+          name: 'isVisibleToCustomer',
+          type: 'checkbox',
+          defaultValue: false,
+        },
+        {
+          name: 'createdAt',
+          type: 'date',
+          required: true,
+          admin: {
+            readOnly: true,
+          },
+        },
+        {
+          name: 'updatedAt',
+          type: 'date',
+          admin: {
+            readOnly: true,
+          },
+        },
+      ],
     },
   ],
   hooks: {
@@ -465,7 +526,7 @@ export const Orders: CollectionConfig = {
       },
     ],
     afterChange: [
-      async ({ doc, operation, req }) => {
+      async ({ doc, operation, req, previousDoc }) => {
         // Update customer statistics after order changes
         if (operation === 'create' && doc.customer && doc.status === 'confirmed') {
           try {
@@ -487,6 +548,52 @@ export const Orders: CollectionConfig = {
             }
           } catch (error) {
             console.error('Error updating customer statistics:', error)
+          }
+        }
+
+        // Send email notifications for status changes
+        if (operation === 'update' && previousDoc && doc.status !== previousDoc.status) {
+          try {
+            // Import email queue dynamically to avoid circular dependencies
+            const { queueOrderUpdateEmail } = await import('../lib/email/emailQueue')
+
+            let statusMessage = ''
+            let shouldSendEmail = false
+
+            switch (doc.status) {
+              case 'processing':
+                statusMessage = 'Your order is now being processed and prepared for shipment.'
+                shouldSendEmail = true
+                break
+              case 'shipped':
+                statusMessage = 'Great news! Your order has been shipped and is on its way to you.'
+                shouldSendEmail = true
+                break
+              case 'delivered':
+                statusMessage = 'Your order has been delivered! We hope you love your purchase.'
+                shouldSendEmail = true
+                break
+              case 'cancelled':
+                statusMessage =
+                  'Your order has been cancelled. If you have any questions, please contact our support team.'
+                shouldSendEmail = true
+                break
+              case 'refunded':
+                statusMessage =
+                  'Your order has been refunded. The refund will appear in your account within 3-5 business days.'
+                shouldSendEmail = true
+                break
+            }
+
+            if (shouldSendEmail) {
+              const emailQueueId = await queueOrderUpdateEmail(doc)
+              console.log(
+                `Order status update email queued: ${emailQueueId} for order ${doc.orderNumber}`,
+              )
+            }
+          } catch (error) {
+            console.error('Error sending order status update email:', error)
+            // Don't fail the order update if email fails
           }
         }
       },

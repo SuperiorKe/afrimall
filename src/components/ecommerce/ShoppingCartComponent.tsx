@@ -14,8 +14,8 @@ import {
   Wifi,
   WifiOff,
 } from 'lucide-react'
-import { formatPrice } from '@/utilities/formatPrice'
-import { cn } from '@/utilities/ui'
+import { formatPrice } from '@/utils/formatting/formatPrice'
+import { cn } from '@/utils/helpers/ui'
 import { useCart } from '@/contexts/CartContext'
 
 interface CartItem {
