@@ -165,19 +165,19 @@ export function calculateOrderTotals(
   }
 }
 
-// Get shipping cost by method
-export function getShippingCost(shippingMethod: string): number {
+// Get shipping cost by method and subtotal
+export function getShippingCost(shippingMethod: string, subtotal: number = 0): number {
   switch (shippingMethod) {
     case 'standard':
-      return 9.99
+      return subtotal * 0.1 // 10% of subtotal for dynamic shipping
     case 'express':
-      return 19.99
+      return subtotal * 0.15 // 15% of subtotal for express
     case 'overnight':
-      return 39.99
+      return subtotal * 0.25 // 25% of subtotal for overnight
     case 'pickup':
       return 0
     default:
-      return 9.99
+      return subtotal * 0.1 // Default to 10% of subtotal
   }
 }
 

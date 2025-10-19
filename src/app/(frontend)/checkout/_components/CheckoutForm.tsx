@@ -32,8 +32,8 @@ export function CheckoutForm() {
 
       // If moving to payment step (step 4), create payment intent
       if (currentStep === 3 && cart?.subtotal) {
-        // Calculate total with shipping and tax
-        const shipping = 9.99
+        // Calculate total with dynamic shipping (10% of subtotal) and tax
+        const shipping = cart.subtotal * 0.1
         const tax = cart.subtotal * 0.1
         const total = cart.subtotal + shipping + tax
         // Pass the amount in dollars - the API will convert to cents

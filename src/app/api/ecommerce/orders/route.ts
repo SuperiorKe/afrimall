@@ -4,6 +4,7 @@ import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/lib/api/apiResponse'
 import { logger } from '@/lib/api/logger'
 import { ORDER_STATUSES, generateOrderNumber } from '@/lib/orders/orderUtils'
+import { getShippingCost } from '@/lib/orders/order-management'
 import { queueOrderConfirmationEmail } from '@/lib/email/emailQueue'
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
@@ -71,7 +72,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         // Shipping information
         shipping: {
           method: shippingMethod || 'standard',
-          cost: 9.99, // Default shipping cost
+          cost: getShippingCost(shippingMethod || 'standard', items.reduce((sum: number, item: any) => sum + item.totalPrice, 0)), // Dynamic shipping cost
           address: {
             firstName: shippingAddress.firstName,
             lastName: shippingAddress.lastName,
