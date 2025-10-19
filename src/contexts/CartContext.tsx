@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react'
 
 export interface CartItem {
   id: string
@@ -70,6 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isOnline, setIsOnline] = useState(true)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [pendingOperations, setPendingOperations] = useState<Array<() => Promise<any>>>([])
+  const hasLocalUpdate = useRef(false)
 
   const getSessionId = () => {
     let sessionId = localStorage.getItem('afrimall_session_id')
@@ -85,7 +86,30 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return null
   }
 
+  // Helper function to process pending operations when back online
+  const processPendingOperations = useCallback(async () => {
+    if (pendingOperations.length > 0 && isOnline) {
+      console.log(`Processing ${pendingOperations.length} pending operations`)
+      const operations = [...pendingOperations]
+      setPendingOperations([])
+
+      for (const operation of operations) {
+        try {
+          await operation()
+        } catch (error) {
+          console.error('Error processing pending operation:', error)
+        }
+      }
+    }
+  }, [pendingOperations, isOnline])
+
   const loadCart = useCallback(async (showLoading = true) => {
+    // Skip loading if we just made a local update to prevent overwriting
+    if (hasLocalUpdate.current) {
+      hasLocalUpdate.current = false
+      return
+    }
+
     try {
       if (showLoading) setLoading(true)
       setError(null)
@@ -115,24 +139,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     } finally {
       if (showLoading) setLoading(false)
     }
-  }, [])
-
-  // Helper function to process pending operations when back online
-  const processPendingOperations = useCallback(async () => {
-    if (pendingOperations.length > 0 && isOnline) {
-      console.log(`Processing ${pendingOperations.length} pending operations`)
-      const operations = [...pendingOperations]
-      setPendingOperations([])
-
-      for (const operation of operations) {
-        try {
-          await operation()
-        } catch (error) {
-          console.error('Error processing pending operation:', error)
-        }
-      }
-    }
-  }, [pendingOperations, isOnline])
+  }, [processPendingOperations])
 
   // Optimistic update helper
   const optimisticUpdate = (updateFn: (currentCart: Cart | null) => Cart | null) => {
@@ -249,6 +256,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (data.success) {
+        hasLocalUpdate.current = true
         setCart(data.data)
         setLastSyncTime(new Date())
         // Trigger cart update event for other components
@@ -301,6 +309,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (data.success) {
+        hasLocalUpdate.current = true
         setCart(data.data)
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: data.data }))
         return true
@@ -334,6 +343,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (data.success) {
         console.log('Setting cart to:', data.data)
+        hasLocalUpdate.current = true
         setCart(data.data)
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: data.data }))
         return true
@@ -366,6 +376,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const data = await response.json()
 
       if (data.success) {
+        hasLocalUpdate.current = true
         setCart(null)
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: null }))
         return true
