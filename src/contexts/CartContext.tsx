@@ -330,12 +330,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       })
 
       const data = await response.json()
+      console.log('Remove from cart API response:', data)
 
       if (data.success) {
+        console.log('Setting cart to:', data.data)
         setCart(data.data)
         window.dispatchEvent(new CustomEvent('cartUpdated', { detail: data.data }))
         return true
       } else {
+        console.log('API returned error:', data.message)
         setError(data.message || 'Failed to remove item')
         return false
       }

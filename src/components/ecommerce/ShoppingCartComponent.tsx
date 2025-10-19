@@ -93,9 +93,11 @@ export function ShoppingCartComponent({
 
   // Animation effect for cart changes
   useEffect(() => {
+    console.log('Cart useEffect triggered, cart:', cart)
     if (cart && previousCartRef.current) {
       const previousItems = previousCartRef.current.items || []
       const currentItems = cart.items || []
+      console.log('Previous items:', previousItems.length, 'Current items:', currentItems.length)
 
       // Find items that were added or changed
       const changedItems = currentItems.filter((currentItem) => {
@@ -167,6 +169,13 @@ export function ShoppingCartComponent({
     try {
       const success = await removeFromCart(productId, variantId)
       console.log('Remove item result:', success)
+      if (success) {
+        console.log('Item removed successfully, cart should update')
+        // Force a cart refresh
+        setTimeout(() => {
+          refreshCart()
+        }, 100)
+      }
     } catch (error) {
       console.error('Error removing item:', error)
     } finally {
