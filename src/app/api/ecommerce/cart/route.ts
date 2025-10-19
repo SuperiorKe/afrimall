@@ -64,7 +64,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       throw error
     }
 
-    logger.apiError('Error fetching cart', '/api/cart', error as Error)
+    logger.apiError('Error fetching cart', '/api/ecommerce/cart', error as Error)
     throw new ApiError('Failed to fetch cart', 500, 'FETCH_ERROR')
   }
 })
@@ -171,7 +171,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       throw error
     }
 
-    logger.apiError('Error updating cart', '/api/cart', error as Error)
+    logger.apiError('Error updating cart', '/api/ecommerce/cart', error as Error)
     throw new ApiError('Failed to update cart', 500, 'UPDATE_ERROR')
   }
 })
@@ -236,7 +236,7 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
       throw error
     }
 
-    logger.apiError('Error clearing cart', '/api/cart', error as Error)
+    logger.apiError('Error clearing cart', '/api/ecommerce/cart', error as Error)
     throw new ApiError('Failed to clear cart', 500, 'CLEAR_ERROR')
   }
 })

@@ -156,7 +156,7 @@ export default function OrderDetailsModal({
 
     setLoading(true)
     try {
-      const response = await fetch(`/api/orders/${orderId}`)
+      const response = await fetch(`/api/ecommerce/orders/${orderId}`)
       const data = await response.json()
 
       if (data.success) {
@@ -174,7 +174,7 @@ export default function OrderDetailsModal({
     if (!order) return
 
     try {
-      const response = await fetch(`/api/orders/${order.id}`, {
+      const response = await fetch(`/api/ecommerce/orders/${order.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -198,7 +198,7 @@ export default function OrderDetailsModal({
     if (!order || !newNote.trim()) return
 
     try {
-      const response = await fetch(`/api/orders/${order.id}/notes`, {
+      const response = await fetch(`/api/ecommerce/orders/${order.id}/notes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -226,7 +226,7 @@ export default function OrderDetailsModal({
     if (!order || !refundAmount || !refundReason) return
 
     try {
-      const response = await fetch(`/api/orders/${order.id}/refund`, {
+      const response = await fetch(`/api/ecommerce/orders/${order.id}/refund`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

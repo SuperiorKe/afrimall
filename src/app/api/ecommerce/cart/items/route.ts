@@ -196,7 +196,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       throw error
     }
 
-    logger.apiError('Error adding item to cart', '/api/cart/items', error as Error)
+    logger.apiError('Error adding item to cart', '/api/ecommerce/cart/items', error as Error)
     throw new ApiError('Failed to add item to cart', 500, 'ADD_ERROR')
   }
 })
@@ -322,7 +322,7 @@ export const PUT = withErrorHandling(async (request: NextRequest) => {
       throw error
     }
 
-    logger.apiError('Error updating cart item', '/api/cart/items', error as Error)
+    logger.apiError('Error updating cart item', '/api/ecommerce/cart/items', error as Error)
     throw new ApiError('Failed to update cart item', 500, 'UPDATE_ERROR')
   }
 })
@@ -476,7 +476,7 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
       throw error
     }
 
-    logger.apiError('Error removing cart item', '/api/cart/items', error as Error)
+    logger.apiError('Error removing cart item', '/api/ecommerce/cart/items', error as Error)
     throw new ApiError('Failed to remove cart item', 500, 'REMOVE_ERROR')
   }
 })

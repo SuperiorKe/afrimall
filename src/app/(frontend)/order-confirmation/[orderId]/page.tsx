@@ -83,7 +83,7 @@ export default function OrderConfirmationPage() {
     const fetchOrder = async () => {
       try {
         setLoading(true)
-        const response = await fetch(`/api/orders/${orderId}`)
+        const response = await fetch(`/api/ecommerce/orders/${orderId}`)
 
         if (!response.ok) {
           throw new Error('Failed to fetch order')

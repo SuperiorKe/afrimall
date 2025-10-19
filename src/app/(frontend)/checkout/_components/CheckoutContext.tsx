@@ -143,7 +143,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       const email = formData.contactInfo.email?.trim()
       const hasValidEmail = email && email.includes('@')
 
-      const response = await fetch('/api/stripe/create-payment-intent', {
+      const response = await fetch('/api/ecommerce/stripe/create-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
         lastName: shippingAddress.lastName,
       })
 
-      const response = await fetch('/api/customers', {
+      const response = await fetch('/api/ecommerce/customers', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

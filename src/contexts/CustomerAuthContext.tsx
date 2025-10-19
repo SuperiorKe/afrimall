@@ -53,7 +53,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await fetch('/api/customers/login', {
+      const response = await fetch('/api/ecommerce/customers/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     preferences?: { newsletter?: boolean }
   }): Promise<boolean> => {
     try {
-      const response = await fetch('/api/customers/register', {
+      const response = await fetch('/api/ecommerce/customers/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

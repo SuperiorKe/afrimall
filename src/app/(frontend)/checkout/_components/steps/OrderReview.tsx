@@ -72,7 +72,7 @@ export function OrderReview() {
         paymentIntentId,
       })
 
-      const response = await fetch('/api/orders', {
+      const response = await fetch('/api/ecommerce/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -144,7 +144,7 @@ export function ProductGrid({
         if (currentMinPrice) params.set('minPrice', currentMinPrice)
         if (currentMaxPrice) params.set('maxPrice', currentMaxPrice)
 
-        const response = await fetch(`/api/products?${params.toString()}`, {
+        const response = await fetch(`/api/ecommerce/products?${params.toString()}`, {
           signal: controller.signal,
         })
         const data = await response.json()

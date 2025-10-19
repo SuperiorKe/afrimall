@@ -94,7 +94,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const sessionId = getSessionId()
 
       const response = await fetch(
-        `/api/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`,
+        `/api/ecommerce/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`,
       )
       const data = await response.json()
 
@@ -231,7 +231,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const customerId = getCustomerId()
       const sessionId = getSessionId()
 
-      const response = await fetch('/api/cart/items', {
+      const response = await fetch('/api/ecommerce/cart/items', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -284,7 +284,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const customerId = getCustomerId()
       const sessionId = getSessionId()
 
-      const response = await fetch('/api/cart/items', {
+      const response = await fetch('/api/ecommerce/cart/items', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -323,7 +323,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const sessionId = getSessionId()
 
       const response = await fetch(
-        `/api/cart/items?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}&productId=${productId}${variantId ? `&variantId=${variantId}` : ''}`,
+        `/api/ecommerce/cart/items?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}&productId=${productId}${variantId ? `&variantId=${variantId}` : ''}`,
         {
           method: 'DELETE',
         },
@@ -354,7 +354,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const sessionId = getSessionId()
 
       const response = await fetch(
-        `/api/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`,
+        `/api/ecommerce/cart?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}`,
         {
           method: 'DELETE',
         },

@@ -124,7 +124,7 @@ export default function AdminOrderDashboard() {
         ...(filters.search && { search: filters.search }),
       })
 
-      const response = await fetch(`/api/orders?${params}`)
+      const response = await fetch(`/api/ecommerce/orders?${params}`)
       const data = await response.json()
 
       if (data.success) {
@@ -147,7 +147,7 @@ export default function AdminOrderDashboard() {
     if (selectedOrders.length === 0) return
 
     try {
-      const response = await fetch('/api/orders/bulk', {
+      const response = await fetch('/api/ecommerce/orders/bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -175,7 +175,7 @@ export default function AdminOrderDashboard() {
   // Update order status
   const updateOrderStatus = async (orderId: string, status: string, additionalData: any = {}) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}`, {
+      const response = await fetch(`/api/ecommerce/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
