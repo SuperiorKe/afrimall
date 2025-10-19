@@ -5,11 +5,34 @@
  * Usage: npx tsx src/scripts/test-email.ts
  */
 
+// Load environment variables FIRST, before any other imports
+import { config } from 'dotenv'
+import { resolve } from 'path'
+
+// Load .env.local file
+config({ path: resolve(process.cwd(), '.env.local') })
+config({ path: resolve(process.cwd(), '.env') })
+
+// Now import the email services after environment variables are loaded
 import { emailService } from '../lib/email/email'
 import { emailQueue } from '../lib/email/emailQueue'
 
 async function testEmailSystem() {
   console.log('🧪 Testing AfriMall Email System...\n')
+
+  // Debug: Show loaded environment variables
+  console.log('🔍 Environment Variables Debug:')
+  console.log('   SMTP_HOST:', process.env.SMTP_HOST ? '✅ Set' : '❌ Missing')
+  console.log('   SMTP_PORT:', process.env.SMTP_PORT ? '✅ Set' : '❌ Missing')
+  console.log('   SMTP_USER:', process.env.SMTP_USER ? '✅ Set' : '❌ Missing')
+  console.log('   SMTP_PASS:', process.env.SMTP_PASS ? '✅ Set' : '❌ Missing')
+  console.log('   SMTP_FROM:', process.env.SMTP_FROM ? '✅ Set' : '❌ Missing')
+  console.log('   ADMIN_EMAIL:', process.env.ADMIN_EMAIL ? '✅ Set' : '❌ Missing')
+  console.log('')
+
+  // Reinitialize email service with loaded environment variables
+  console.log('🔄 Reinitializing email service with environment variables...')
+  emailService.reinitializeConfig()
 
   // Test 1: Check email configuration
   console.log('1️⃣ Checking email configuration...')

@@ -77,8 +77,18 @@ export class EmailService {
       const smtpPass = process.env.SMTP_PASS
       const smtpFrom = process.env.SMTP_FROM || smtpUser
 
+      // Debug logging
+      logger.info(
+        `Email config debug - Host: ${smtpHost}, Port: ${smtpPort}, User: ${smtpUser}, Pass: ${smtpPass ? '[SET]' : '[NOT SET]'}, From: ${smtpFrom}`,
+        'EmailService',
+      )
+
       if (!smtpHost || !smtpPort || !smtpUser || !smtpPass) {
         logger.warn('Email configuration incomplete - email notifications disabled', 'EmailService')
+        logger.warn(
+          `Missing: ${!smtpHost ? 'SMTP_HOST ' : ''}${!smtpPort ? 'SMTP_PORT ' : ''}${!smtpUser ? 'SMTP_USER ' : ''}${!smtpPass ? 'SMTP_PASS' : ''}`,
+          'EmailService',
+        )
         return
       }
 
@@ -544,6 +554,11 @@ This is an automated message. Please do not reply to this email.
       host: this.config?.host,
       from: this.config?.from,
     }
+  }
+
+  // Reinitialize configuration (useful for testing)
+  reinitializeConfig(): void {
+    this.initializeConfig()
   }
 }
 
