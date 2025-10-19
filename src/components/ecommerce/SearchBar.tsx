@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface SearchBarProps {
   className?: string

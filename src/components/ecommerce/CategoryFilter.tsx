@@ -4,7 +4,7 @@ import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { useSearchParams, usePathname } from 'next/navigation'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface Category {
   id: string

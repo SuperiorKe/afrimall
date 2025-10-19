@@ -1,23 +1,23 @@
 import type { Metadata } from 'next'
 
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 import { GeistMono } from 'geist/font/mono'
 import { GeistSans } from 'geist/font/sans'
 import React from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 
-import { AdminBar } from '@/components/AdminBar'
-import { Footer } from '@/Footer/Component'
-import { Header } from '@/Header/Component'
+import { AdminBar } from '@/components/layout/AdminBar'
+import { Footer } from '@/components/layout/Footer/Component'
+import { Header } from '@/components/layout/Header/Component'
 import { Providers } from '@/providers'
 import { CartProvider } from '@/contexts/CartContext'
 import { InitTheme } from '@/providers/Theme/InitTheme'
-import { mergeOpenGraph } from '@/utilities/mergeOpenGraph'
+import { mergeOpenGraph } from '@/utils/helpers/mergeOpenGraph'
 import { draftMode } from 'next/headers'
 
 import './globals.css'
-import { getServerSideURL } from '@/utilities/getURL'
+import { getServerSideURL } from '@/utils/helpers/getURL'
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const { isEnabled } = await draftMode()

@@ -791,13 +791,27 @@ export interface Order {
    */
   stripeClientSecret?: string | null;
   /**
-   * Order notes (customer or admin)
+   * Customer notes (visible to customer)
    */
-  notes?: string | null;
+  customerNotes?: string | null;
   /**
-   * Internal notes (admin only)
+   * Admin notes (internal only)
    */
-  internalNotes?: string | null;
+  adminNotes?: string | null;
+  /**
+   * Order notes history
+   */
+  notes?:
+    | {
+        id: string;
+        type: 'internal' | 'customer' | 'system';
+        content: string;
+        author: string;
+        isVisibleToCustomer?: boolean | null;
+        createdAt: string;
+        updatedAt?: string | null;
+      }[]
+    | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -1615,8 +1629,19 @@ export interface OrdersSelect<T extends boolean = true> {
   paymentReference?: T;
   stripePaymentIntentId?: T;
   stripeClientSecret?: T;
-  notes?: T;
-  internalNotes?: T;
+  customerNotes?: T;
+  adminNotes?: T;
+  notes?:
+    | T
+    | {
+        id?: T;
+        type?: T;
+        content?: T;
+        author?: T;
+        isVisibleToCustomer?: T;
+        createdAt?: T;
+        updatedAt?: T;
+      };
   updatedAt?: T;
   createdAt?: T;
 }

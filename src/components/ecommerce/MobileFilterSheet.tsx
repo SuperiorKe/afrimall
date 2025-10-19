@@ -5,7 +5,7 @@ import { useSearchParams, usePathname, useRouter } from 'next/navigation'
 import Slider from 'rc-slider'
 import 'rc-slider/assets/index.css'
 import { X } from 'lucide-react'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 // Assuming Category type is defined elsewhere and imported
 interface Category {

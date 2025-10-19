@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSearchParams, usePathname, useRouter } from 'next/navigation'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface ProductFiltersProps {
   searchQuery?: string

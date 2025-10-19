@@ -7,7 +7,7 @@ import type { Media } from '@/payload-types'
 import { ProductGallery } from '@/components/ecommerce/ProductGallery'
 import { ProductDetail } from '@/components/ecommerce/ProductDetail'
 import { RelatedProducts } from '@/components/ecommerce/RelatedProducts'
-import { transformProducts } from '@/utilities/productTransform'
+import { transformProducts } from '@/lib/products/productTransform'
 
 interface Props {
   params: Promise<{ slug: string }>

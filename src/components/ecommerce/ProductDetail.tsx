@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { formatPrice } from '@/utilities/formatPrice'
+import { formatPrice } from '@/utils/formatting/formatPrice'
 import { AddToCartButton } from './AddToCartButton'
 import { SizeSelector } from './SizeSelector'
 import { QuantityControls } from './QuantityControls'
@@ -12,7 +12,7 @@ import { ProductFeatures } from './ProductFeatures'
 import { ProductRating } from './ProductRating'
 import { Heart } from 'lucide-react'
 import { ProductVariant } from '@/payload-types'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface Product {
   id: number

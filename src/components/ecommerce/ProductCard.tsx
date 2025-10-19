@@ -3,7 +3,7 @@
 import React from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { formatPrice } from '@/utilities/formatPrice'
+import { formatPrice } from '@/utils/formatting/formatPrice'
 import { AddToCartButton } from './AddToCartButton'
 
 interface Product {

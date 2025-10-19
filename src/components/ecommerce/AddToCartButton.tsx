@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 import { useCart } from '@/contexts/CartContext'
 
 interface Product {

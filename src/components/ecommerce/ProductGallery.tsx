@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import Image from 'next/image'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 import { Button } from '@/components/ui/button'
 import { ChevronLeft, ChevronRight, ZoomIn } from 'lucide-react'
 

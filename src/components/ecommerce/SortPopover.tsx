@@ -3,7 +3,7 @@
 import React from 'react'
 import { useSearchParams, usePathname, useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 interface SortPopoverProps {
   isOpen: boolean

@@ -4,8 +4,8 @@ import {
   serverAddressSchema,
   validateFieldAsync,
 } from '@/lib/validation/checkout-schemas'
-import { createSuccessResponse, createErrorResponse } from '@/utilities/apiResponse'
-import { logger } from '@/utilities/logger'
+import { createSuccessResponse, createErrorResponse } from '@/lib/api/apiResponse'
+import { logger } from '@/lib/api/logger'
 
 export const POST = async (request: NextRequest) => {
   try {

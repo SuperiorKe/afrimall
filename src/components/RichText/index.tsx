@@ -9,7 +9,7 @@ import {
   RichText as ConvertRichText,
 } from '@payloadcms/richtext-lexical/react'
 
-import { cn } from '@/utilities/ui'
+import { cn } from '@/utils/helpers/ui'
 
 type NodeTypes = DefaultNodeTypes
 

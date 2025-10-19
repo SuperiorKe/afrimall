@@ -83,7 +83,7 @@ export function ProductGrid({
   const searchParams = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-  
+
   // Ref to track current fetch request and prevent duplicate fetches
   const abortControllerRef = useRef<AbortController | null>(null)
   const isFetchingRef = useRef(false)
@@ -153,7 +153,7 @@ export function ProductGrid({
           if (append) {
             // For infinite scroll, append new products using functional update
             setProducts((prev) => {
-              const existingIds = new Set(prev.map(p => p.id))
+              const existingIds = new Set(prev.map((p) => p.id))
               const newProducts = data.data.products.filter((p: Product) => !existingIds.has(p.id))
               return [...prev, ...newProducts]
             })
