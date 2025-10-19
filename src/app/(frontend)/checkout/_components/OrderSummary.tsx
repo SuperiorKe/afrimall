@@ -13,7 +13,7 @@ export function OrderSummary() {
 
   const cartItems = cart?.items || []
   const subtotal = cart?.subtotal || 0
-  const shipping = 9.99 // This would be calculated based on shipping method
+  const shipping = subtotal * 0.1 // 10% of subtotal for dynamic shipping
   const tax = subtotal * 0.1 // Example tax calculation
   const total = subtotal + shipping + tax - discount
 

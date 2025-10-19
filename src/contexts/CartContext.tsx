@@ -321,13 +321,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       const customerId = getCustomerId()
       const sessionId = getSessionId()
+      
+      const url = `/api/ecommerce/cart/items?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}&productId=${productId}${variantId ? `&variantId=${variantId}` : ''}`
+      console.log('Remove from cart URL:', url)
 
-      const response = await fetch(
-        `/api/ecommerce/cart/items?${customerId ? `customerId=${customerId}` : `sessionId=${sessionId}`}&productId=${productId}${variantId ? `&variantId=${variantId}` : ''}`,
-        {
-          method: 'DELETE',
-        },
-      )
+      const response = await fetch(url, {
+        method: 'DELETE',
+      })
 
       const data = await response.json()
 

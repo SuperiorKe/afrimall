@@ -160,11 +160,13 @@ export function ShoppingCartComponent({
   }
 
   const handleRemoveItem = async (productId: string, variantId: string | undefined) => {
+    console.log('Removing item:', { productId, variantId })
     const updateKey = `${productId}-${variantId || 'no-variant'}`
     setUpdating(updateKey)
 
     try {
-      await removeFromCart(productId, variantId)
+      const success = await removeFromCart(productId, variantId)
+      console.log('Remove item result:', success)
     } catch (error) {
       console.error('Error removing item:', error)
     } finally {
