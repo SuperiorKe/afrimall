@@ -30,10 +30,10 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     const customer = existingCustomer.docs[0]
 
-    // Check if customer is already verified
-    if (customer._verified) {
-      throw new ApiError('This account is already verified', 400, 'ALREADY_VERIFIED')
-    }
+    // Since email verification is disabled in the Customers collection config,
+    // we'll skip the verification check and proceed with email sending
+    // In a real implementation, you might want to add a custom verification field
+    // or implement a different verification system
 
     // Generate a new verification token and send email
     try {

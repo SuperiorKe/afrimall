@@ -57,13 +57,14 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       },
     })
 
-    // Check if customer needs verification
-    const needsVerification = !customer._verified
+    // Since email verification is disabled in the Customers collection config,
+    // we can immediately generate a token for the new customer
+    const needsVerification = false
 
     let token = null
     let user = null
 
-    // Only generate token if account is verified or verification is disabled
+    // Generate token immediately since verification is disabled
     if (!needsVerification) {
       try {
         const loginResult = await payload.login({
