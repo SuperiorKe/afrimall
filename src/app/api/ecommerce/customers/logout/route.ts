@@ -17,26 +17,11 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     const token = authHeader.substring(7) // Remove 'Bearer ' prefix
 
-    try {
-      // Verify the token to get user info before logout
-      const result = await payload.auth.verifyJWT({
-        token,
-        collection: 'customers',
-      })
-
-      if (result.user) {
-        // Log the logout event
-        logger.info('Customer logged out successfully', 'API:customers:logout', {
-          customerId: result.user.id,
-          email: result.user.email,
-        })
-      }
-    } catch (verifyError) {
-      // Token is invalid, but we still want to return success for client-side cleanup
-      logger.warn('Invalid token during logout', 'API:customers:logout', {
-        error: verifyError instanceof Error ? verifyError.message : 'Unknown error',
-      })
-    }
+    // Note: JWT verification temporarily disabled due to API changes
+    // The token will naturally expire based on the tokenExpiration setting
+    logger.info('Customer logout requested', 'API:customers:logout', {
+      hasToken: !!token,
+    })
 
     // Note: Payload CMS doesn't have a built-in logout method that invalidates tokens
     // The token will naturally expire based on the tokenExpiration setting

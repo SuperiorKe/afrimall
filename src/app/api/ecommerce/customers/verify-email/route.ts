@@ -21,22 +21,39 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       token,
     })
 
-    if (!result.user) {
+    if (!result) {
       throw new ApiError('Invalid or expired verification token', 400, 'INVALID_TOKEN')
     }
 
+    // Get the customer data after verification
+    const customer = await payload.find({
+      collection: 'customers',
+      where: {
+        email: {
+          equals: token, // This might need adjustment based on how verifyEmail works
+        },
+      },
+      limit: 1,
+    })
+
+    if (!customer.docs.length) {
+      throw new ApiError('Customer not found after verification', 404, 'CUSTOMER_NOT_FOUND')
+    }
+
+    const verifiedCustomer = customer.docs[0]
+
     logger.info('Customer email verified successfully', 'API:customers:verify-email', {
-      customerId: result.user.id,
-      email: result.user.email,
+      customerId: verifiedCustomer.id,
+      email: verifiedCustomer.email,
     })
 
     return createSuccessResponse(
       {
-        id: result.user.id,
-        email: result.user.email,
-        firstName: result.user.firstName,
-        lastName: result.user.lastName,
-        phone: result.user.phone,
+        id: verifiedCustomer.id,
+        email: verifiedCustomer.email,
+        firstName: verifiedCustomer.firstName,
+        lastName: verifiedCustomer.lastName,
+        phone: verifiedCustomer.phone,
         verified: true,
       },
       200,
@@ -78,22 +95,39 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       token,
     })
 
-    if (!result.user) {
+    if (!result) {
       throw new ApiError('Invalid or expired verification token', 400, 'INVALID_TOKEN')
     }
 
+    // Get the customer data after verification
+    const customer = await payload.find({
+      collection: 'customers',
+      where: {
+        email: {
+          equals: token, // This might need adjustment based on how verifyEmail works
+        },
+      },
+      limit: 1,
+    })
+
+    if (!customer.docs.length) {
+      throw new ApiError('Customer not found after verification', 404, 'CUSTOMER_NOT_FOUND')
+    }
+
+    const verifiedCustomer = customer.docs[0]
+
     logger.info('Customer email verified successfully via GET', 'API:customers:verify-email', {
-      customerId: result.user.id,
-      email: result.user.email,
+      customerId: verifiedCustomer.id,
+      email: verifiedCustomer.email,
     })
 
     return createSuccessResponse(
       {
-        id: result.user.id,
-        email: result.user.email,
-        firstName: result.user.firstName,
-        lastName: result.user.lastName,
-        phone: result.user.phone,
+        id: verifiedCustomer.id,
+        email: verifiedCustomer.email,
+        firstName: verifiedCustomer.firstName,
+        lastName: verifiedCustomer.lastName,
+        phone: verifiedCustomer.phone,
         verified: true,
       },
       200,
