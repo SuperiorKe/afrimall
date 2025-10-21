@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/lib/api/apiResponse'
 import { logger } from '@/lib/api/logger'
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
     // Extract token from Authorization header
     const authHeader = request.headers.get('authorization')

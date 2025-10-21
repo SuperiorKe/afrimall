@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { stripe } from '@/lib/payments/stripe'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import {
   withErrorHandling,
@@ -35,7 +35,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     throw new ApiError('Invalid signature', 400, 'INVALID_SIGNATURE')
   }
 
-  const payload = await getPayloadHMR({ config: configPromise })
+  const payload = await getPayload({ config: configPromise })
 
   try {
     switch (event.type) {

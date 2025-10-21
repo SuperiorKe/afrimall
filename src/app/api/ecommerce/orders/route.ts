@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/lib/api/apiResponse'
 import { logger } from '@/lib/api/logger'
@@ -10,7 +10,7 @@ import { queueOrderConfirmationEmail } from '@/lib/email/emailQueue'
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
     const body = await request.json()
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
     const {
       items,
@@ -241,7 +241,7 @@ async function validateAndReserveInventory(payload: any, items: any[]) {
 export const GET = withErrorHandling(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
     const customerId = searchParams.get('customerId')
     const orderNumber = searchParams.get('orderNumber')

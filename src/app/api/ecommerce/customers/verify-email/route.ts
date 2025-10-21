@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/lib/api/apiResponse'
 import { logger } from '@/lib/api/logger'
@@ -7,7 +7,7 @@ import { logger } from '@/lib/api/logger'
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
     const body = await request.json()
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
     const { token } = body
 
@@ -87,7 +87,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       throw new ApiError('Verification token is required', 400, 'MISSING_TOKEN')
     }
 
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
     // Verify the email token
     const result = await payload.verifyEmail({

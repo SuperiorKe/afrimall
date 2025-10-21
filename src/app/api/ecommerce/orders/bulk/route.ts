@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/lib/api/apiResponse'
 import { logger } from '@/lib/api/logger'
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
   return withErrorHandling(async (request: NextRequest) => {
     try {
       const body = await request.json()
-      const payload = await getPayloadHMR({ config: configPromise })
+      const payload = await getPayload({ config: configPromise })
 
       const { operation, orderIds, data = {}, notifyCustomers = true } = body
 

@@ -8,29 +8,8 @@ export const Customers: CollectionConfig = {
   auth: {
     // Enable authentication for customers
     tokenExpiration: 7200, // 2 hours
-    verify: {
-      generateEmailHTML: ({ token, user }) => {
-        const verificationUrl = `${process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3000'}/auth/verify-email?token=${token}`
-        return `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #2563eb;">Welcome to Afrimall!</h2>
-            <p>Hi ${user.firstName},</p>
-            <p>Thank you for creating an account with Afrimall. Please verify your email address by clicking the button below:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email Address</a>
-            </div>
-            <p>If the button doesn't work, you can also copy and paste this link into your browser:</p>
-            <p style="word-break: break-all; color: #666;">${verificationUrl}</p>
-            <p>This link will expire in 24 hours.</p>
-            <p>If you didn't create an account with Afrimall, you can safely ignore this email.</p>
-            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-            <p style="color: #666; font-size: 14px;">Afrimall - African Marketplace</p>
-          </div>
-        `
-      },
-      generateEmailSubject: ({ user }) =>
-        `Verify your Afrimall account - Welcome ${user.firstName}!`,
-    },
+    // Disable Payload's built-in email verification to use our custom system
+    verify: false,
     maxLoginAttempts: 5,
     lockTime: 600000, // 10 minutes
   },

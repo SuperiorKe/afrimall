@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { getPayloadHMR } from '@payloadcms/next/utilities'
+import { getPayload } from 'payload'
 import configPromise from '@payload-config'
 import { createSuccessResponse, withErrorHandling, ApiError } from '@/lib/api/apiResponse'
 import { logger } from '@/lib/api/logger'
@@ -7,7 +7,7 @@ import { logger } from '@/lib/api/logger'
 // Enhanced search and filtering for products
 export const GET = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const searchParams = request.nextUrl.searchParams
 
     // Extract query parameters
@@ -240,7 +240,7 @@ async function getPriceRange(payload: any) {
 // POST method for creating products (admin only)
 export const POST = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
 
     // Check content type and parse accordingly
     const contentType = request.headers.get('content-type') || ''
@@ -425,7 +425,7 @@ function validateProductData(data: Record<string, unknown>): {
 // DELETE method for bulk product deletion
 export const DELETE = withErrorHandling(async (request: NextRequest) => {
   try {
-    const payload = await getPayloadHMR({ config: configPromise })
+    const payload = await getPayload({ config: configPromise })
     const { searchParams } = new URL(request.url)
 
     // Get product IDs from query parameters
