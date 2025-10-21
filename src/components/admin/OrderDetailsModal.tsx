@@ -284,7 +284,7 @@ export default function OrderDetailsModal({
     if (isOpen && orderId) {
       fetchOrderDetails()
     }
-  }, [isOpen, orderId])
+  }, [isOpen, orderId, fetchOrderDetails])
 
   if (!isOpen) return null
 

@@ -19,7 +19,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     try {
       // Verify the token to get user info before logout
-      const result = await payload.verifyJWT({
+      const result = await payload.auth.verifyJWT({
         token,
         collection: 'customers',
       })

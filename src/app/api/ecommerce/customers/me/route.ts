@@ -17,7 +17,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const token = authHeader.substring(7) // Remove 'Bearer ' prefix
 
     // Verify the token and get user data
-    const result = await payload.verifyJWT({
+    const result = await payload.auth.verifyJWT({
       token,
       collection: 'customers',
     })

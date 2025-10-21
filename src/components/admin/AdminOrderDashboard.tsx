@@ -255,7 +255,7 @@ export default function AdminOrderDashboard() {
 
   useEffect(() => {
     fetchOrders()
-  }, [filters, pagination.page])
+  }, [filters, pagination.page, fetchOrders])
 
   return (
     <div className="space-y-6">
