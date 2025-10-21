@@ -105,6 +105,30 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         )
       }
 
+      case 'send_order_confirmation': {
+        const { orderData } = body
+
+        if (!orderData) {
+          throw new ApiError('Order data is required', 400, 'MISSING_ORDER_DATA')
+        }
+
+        // Import the order confirmation email function
+        const { sendOrderConfirmationEmail } = await import('@/lib/email/email')
+
+        const success = await sendOrderConfirmationEmail(orderData)
+
+        return createSuccessResponse(
+          {
+            sent: success,
+            message: success
+              ? 'Order confirmation email sent successfully'
+              : 'Failed to send order confirmation email',
+          },
+          200,
+          'Order confirmation email test completed',
+        )
+      }
+
       default:
         throw new ApiError('Invalid action', 400, 'INVALID_ACTION')
     }

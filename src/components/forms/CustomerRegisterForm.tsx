@@ -18,11 +18,13 @@ export function CustomerRegisterForm() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    setSuccess('')
 
     // Validate passwords match
     if (formData.password !== formData.confirmPassword) {
@@ -39,7 +41,7 @@ export function CustomerRegisterForm() {
     }
 
     try {
-      const success = await register({
+      const result = await register({
         firstName: formData.firstName,
         lastName: formData.lastName,
         email: formData.email,
@@ -50,19 +52,26 @@ export function CustomerRegisterForm() {
         },
       })
 
-      if (success) {
-        // Redirect to account page or back to checkout
-        const returnUrl = new URLSearchParams(window.location.search).get('return')
-        if (returnUrl) {
-          router.push(returnUrl)
+      if (result.success) {
+        if (result.needsVerification) {
+          setSuccess(
+            'Account created successfully! Please check your email to verify your account before logging in.',
+          )
+          // Don't redirect yet, let user see the success message
         } else {
-          router.push('/account')
+          // Account is verified, redirect
+          const returnUrl = new URLSearchParams(window.location.search).get('return')
+          if (returnUrl) {
+            router.push(returnUrl)
+          } else {
+            router.push('/account')
+          }
         }
       } else {
-        setError('Registration failed. Please try again.')
+        setError(result.error || 'Registration failed. Please try again.')
       }
     } catch (error) {
-      setError('An error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -92,6 +101,50 @@ export function CustomerRegisterForm() {
             </div>
             <div className="ml-3">
               <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-md bg-green-50 dark:bg-green-900/20 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-green-800 dark:text-green-200">{success}</p>
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/ecommerce/customers/resend-verification', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: formData.email }),
+                      })
+                      const data = await response.json()
+                      if (data.success) {
+                        setSuccess('Verification email sent! Please check your inbox.')
+                      } else {
+                        setError(data.message || 'Failed to resend verification email.')
+                      }
+                    } catch (error) {
+                      setError('Failed to resend verification email. Please try again.')
+                    }
+                  }}
+                  className="text-sm text-green-600 hover:text-green-500 dark:text-green-400 dark:hover:text-green-300 underline"
+                >
+                  Resend verification email
+                </button>
+              </div>
             </div>
           </div>
         </div>

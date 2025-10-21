@@ -21,9 +21,9 @@ export function CustomerLoginForm() {
     setError('')
 
     try {
-      const success = await login(formData.email, formData.password)
+      const result = await login(formData.email, formData.password)
 
-      if (success) {
+      if (result.success) {
         // Redirect to account page or back to checkout
         const returnUrl = new URLSearchParams(window.location.search).get('return')
         if (returnUrl) {
@@ -32,10 +32,10 @@ export function CustomerLoginForm() {
           router.push('/account')
         }
       } else {
-        setError('Invalid email or password. Please try again.')
+        setError(result.error || 'Invalid email or password. Please try again.')
       }
     } catch (error) {
-      setError('An error occurred. Please try again.')
+      setError('An unexpected error occurred. Please try again.')
     } finally {
       setLoading(false)
     }

@@ -57,19 +57,42 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       },
     })
 
-    // Generate authentication token for the new customer
-    const token = await payload.login({
-      collection: 'customers',
-      data: {
-        email,
-        password,
-      },
-      req: request,
-    })
+    // Check if customer needs verification
+    const needsVerification = !customer._verified
+
+    let token = null
+    let user = null
+
+    // Only generate token if account is verified or verification is disabled
+    if (!needsVerification) {
+      try {
+        const loginResult = await payload.login({
+          collection: 'customers',
+          data: {
+            email,
+            password,
+          },
+          req: request,
+        })
+        token = loginResult.token
+        user = loginResult.user
+      } catch (loginError) {
+        // If login fails after creation, it might be due to verification
+        logger.warn(
+          'Login failed after registration, likely due to verification requirement',
+          'API:customers:register',
+          {
+            customerId: customer.id,
+            email: customer.email,
+          },
+        )
+      }
+    }
 
     logger.info('Customer registered successfully', 'API:customers:register', {
       customerId: customer.id,
       email: customer.email,
+      needsVerification,
     })
 
     return createSuccessResponse(
@@ -79,11 +102,14 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         firstName: customer.firstName,
         lastName: customer.lastName,
         phone: customer.phone,
-        token: token.token,
-        user: token.user,
+        token: token,
+        user: user,
+        needsVerification,
       },
       201,
-      'Customer registered successfully',
+      needsVerification
+        ? 'Account created successfully. Please check your email to verify your account.'
+        : 'Customer registered successfully',
     )
   } catch (error) {
     if (error instanceof ApiError) {

@@ -14,7 +14,7 @@ interface CustomerAuthContextType {
   customer: Customer | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<boolean>
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
   register: (data: {
     email: string
     password: string
@@ -22,7 +22,7 @@ interface CustomerAuthContextType {
     lastName: string
     phone?: string
     preferences?: { newsletter?: boolean }
-  }) => Promise<boolean>
+  }) => Promise<{ success: boolean; error?: string; needsVerification?: boolean }>
   logout: () => void
   checkAuth: () => Promise<void>
 }
@@ -41,17 +41,43 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Validate token with server (you might want to create a /api/customers/me endpoint)
-      // For now, we'll just check if token exists
-      setIsLoading(false)
+      // Validate token with server
+      const response = await fetch('/api/ecommerce/customers/me', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setCustomer({
+          id: data.data.id,
+          email: data.data.email,
+          firstName: data.data.firstName,
+          lastName: data.data.lastName,
+          phone: data.data.phone,
+        })
+      } else {
+        // Token is invalid, remove it
+        localStorage.removeItem('afrimall_customer_token')
+        setCustomer(null)
+      }
     } catch (error) {
       console.error('Error checking auth:', error)
       localStorage.removeItem('afrimall_customer_token')
+      setCustomer(null)
+    } finally {
       setIsLoading(false)
     }
   }
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (
+    email: string,
+    password: string,
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await fetch('/api/ecommerce/customers/login', {
         method: 'POST',
@@ -72,12 +98,19 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
           lastName: data.data.lastName,
           phone: data.data.phone,
         })
-        return true
+        return { success: true }
+      } else {
+        return {
+          success: false,
+          error: data.message || 'Login failed. Please check your credentials.',
+        }
       }
-      return false
     } catch (error) {
       console.error('Login error:', error)
-      return false
+      return {
+        success: false,
+        error: 'Network error. Please check your connection and try again.',
+      }
     }
   }
 
@@ -88,7 +121,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     lastName: string
     phone?: string
     preferences?: { newsletter?: boolean }
-  }): Promise<boolean> => {
+  }): Promise<{ success: boolean; error?: string; needsVerification?: boolean }> => {
     try {
       const response = await fetch('/api/ecommerce/customers/register', {
         method: 'POST',
@@ -101,6 +134,16 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
       const result = await response.json()
 
       if (result.success) {
+        // Check if account needs verification
+        if (result.data.needsVerification) {
+          return {
+            success: true,
+            needsVerification: true,
+            error: 'Please check your email to verify your account before logging in.',
+          }
+        }
+
+        // Account is verified, log them in automatically
         localStorage.setItem('afrimall_customer_token', result.data.token)
         setCustomer({
           id: result.data.id,
@@ -109,18 +152,44 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
           lastName: result.data.lastName,
           phone: result.data.phone,
         })
-        return true
+        return { success: true }
+      } else {
+        return {
+          success: false,
+          error: result.message || 'Registration failed. Please try again.',
+        }
       }
-      return false
     } catch (error) {
       console.error('Registration error:', error)
-      return false
+      return {
+        success: false,
+        error: 'Network error. Please check your connection and try again.',
+      }
     }
   }
 
-  const logout = () => {
-    localStorage.removeItem('afrimall_customer_token')
-    setCustomer(null)
+  const logout = async () => {
+    try {
+      const token = localStorage.getItem('afrimall_customer_token')
+
+      if (token) {
+        // Call logout endpoint for server-side cleanup
+        await fetch('/api/ecommerce/customers/logout', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+      }
+    } catch (error) {
+      console.error('Error during logout:', error)
+      // Continue with client-side cleanup even if server call fails
+    } finally {
+      // Always clean up client-side state
+      localStorage.removeItem('afrimall_customer_token')
+      setCustomer(null)
+    }
   }
 
   useEffect(() => {
