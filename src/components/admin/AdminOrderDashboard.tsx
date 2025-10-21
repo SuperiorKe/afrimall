@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -112,7 +112,7 @@ export default function AdminOrderDashboard() {
   })
 
   // Fetch orders
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams({
@@ -140,7 +140,14 @@ export default function AdminOrderDashboard() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [
+    pagination.page,
+    pagination.limit,
+    filters.status,
+    filters.paymentStatus,
+    filters.shippingStatus,
+    filters.search,
+  ])
 
   // Bulk operations
   const handleBulkOperation = async (operation: string, data: any = {}) => {
@@ -255,7 +262,7 @@ export default function AdminOrderDashboard() {
 
   useEffect(() => {
     fetchOrders()
-  }, [filters, pagination.page, fetchOrders])
+  }, [fetchOrders])
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -151,7 +151,7 @@ export default function OrderDetailsModal({
   const [refundReason, setRefundReason] = useState('')
 
   // Fetch order details
-  const fetchOrderDetails = async () => {
+  const fetchOrderDetails = useCallback(async () => {
     if (!orderId) return
 
     setLoading(true)
@@ -167,7 +167,7 @@ export default function OrderDetailsModal({
     } finally {
       setLoading(false)
     }
-  }
+  }, [orderId])
 
   // Update order status
   const updateOrderStatus = async (status: string, additionalData: any = {}) => {
