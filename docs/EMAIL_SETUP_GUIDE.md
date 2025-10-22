@@ -112,6 +112,12 @@ curl -X POST http://localhost:3000/api/email/test \
 - **Failure**: Sent via Stripe webhook when payment fails
 - **Template**: Order update template with payment-specific messaging
 
+### **Password Reset Emails**
+- **Triggered**: When customer requests password reset
+- **Contains**: Reset link with secure token, security notices
+- **Token Expiration**: 1 hour
+- **Template**: Built into EmailService (HTML + Text)
+
 ### **Admin Notifications**
 - **Low Stock**: When product quantity drops below threshold
 - **Out of Stock**: When product quantity reaches zero
@@ -122,19 +128,25 @@ curl -X POST http://localhost:3000/api/email/test \
 ## 🔧 **Files Created/Modified**
 
 ### **New Files:**
-- `src/utilities/email.ts` - Email service wrapper
-- `src/utilities/emailQueue.ts` - Email queue system
+- `src/lib/email/email.ts` - Email service wrapper
+- `src/lib/email/emailQueue.ts` - Email queue system
 - `src/templates/order-confirmation.html` - Order confirmation template
 - `src/templates/order-update.html` - Order update template
 - `src/app/api/email/test/route.ts` - Email testing endpoint
 - `src/scripts/test-email.ts` - Email system test script
+- `src/app/api/ecommerce/customers/forgot-password/route.ts` - Password reset request
+- `src/app/api/ecommerce/customers/reset-password/route.ts` - Password reset completion
+- `src/app/(frontend)/auth/forgot-password/page.tsx` - Forgot password UI
+- `src/app/(frontend)/auth/reset-password/page.tsx` - Reset password UI
+- `src/scripts/test-password-recovery.ts` - Password recovery test script
 
 ### **Modified Files:**
 - `src/app/api/orders/route.ts` - Added order confirmation email
 - `src/app/api/stripe/webhook/route.ts` - Added payment notification emails
 - `src/collections/Orders.ts` - Added status change email hooks
 - `src/collections/Products.ts` - Added admin notification emails
-- `src/utilities/config.ts` - Added email configuration support
+- `src/config/config.ts` - Added email configuration support
+- `src/lib/email/email.ts` - Added password reset email functionality
 
 ---
 

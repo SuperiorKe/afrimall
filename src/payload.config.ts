@@ -1,6 +1,7 @@
 import { s3Storage } from '@payloadcms/storage-s3'
 import { sqliteAdapter } from '@payloadcms/db-sqlite'
 import { postgresAdapter } from '@payloadcms/db-postgres'
+import { nodemailerAdapter } from '@payloadcms/email-nodemailer'
 
 import sharp from 'sharp' // sharp-import
 import path from 'path'
@@ -151,6 +152,22 @@ export default buildConfig({
   typescript: {
     outputFile: path.resolve(dirname, 'payload-types.ts'),
   },
+  email: process.env.SMTP_HOST
+    ? nodemailerAdapter({
+        defaultFromAddress:
+          process.env.SMTP_FROM || process.env.SMTP_USER || 'noreply@afrimall.app',
+        defaultFromName: 'AfriMall',
+        transportOptions: {
+          host: process.env.SMTP_HOST,
+          port: parseInt(process.env.SMTP_PORT || '587'),
+          secure: parseInt(process.env.SMTP_PORT || '587') === 465,
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        },
+      })
+    : undefined,
   jobs: {
     access: {
       run: ({ req }: { req: PayloadRequest }): boolean => {

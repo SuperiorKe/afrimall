@@ -58,6 +58,13 @@ export interface OrderUpdateData {
   updateDate: string
 }
 
+export interface PasswordResetData {
+  email: string
+  firstName: string
+  resetToken: string
+  resetUrl: string
+}
+
 // Email service class
 export class EmailService {
   private transporter: nodemailer.Transporter | null = null
@@ -431,7 +438,7 @@ If you have any questions about your order, please contact our support team.
 Best regards,
 The AfriMall Team
 
-© 2024 AfriMall. All rights reserved.
+© 2025 AfriMall. All rights reserved.
 This is an automated message. Please do not reply to this email.
     `.trim()
   }
@@ -537,7 +544,151 @@ If you have any questions about your order, please contact our support team.
 Best regards,
 The AfriMall Team
 
-© 2024 AfriMall. All rights reserved.
+© 2025 AfriMall. All rights reserved.
+This is an automated message. Please do not reply to this email.
+    `.trim()
+  }
+
+  // Send password reset email
+  async sendPasswordResetEmail(data: PasswordResetData): Promise<boolean> {
+    if (!this.isConfigured) {
+      logger.warn('Email service not configured - skipping password reset email', 'EmailService')
+      return false
+    }
+
+    try {
+      const mailOptions = {
+        from: this.config!.from,
+        to: data.email,
+        subject: 'Reset Your AfriMall Password',
+        text: this.generatePasswordResetText(data),
+        html: this.generatePasswordResetHTML(data),
+        // Disable click tracking for security-sensitive password reset emails
+        headers: {
+          'X-No-Click-Tracking': 'true',
+        },
+        trackingSettings: {
+          clickTracking: {
+            enable: false,
+            enableText: false,
+          },
+        },
+      }
+
+      const result = await this.transporter!.sendMail(mailOptions)
+      logger.info('Password reset email sent successfully', 'EmailService', {
+        to: data.email,
+        messageId: result.messageId,
+      })
+      return true
+    } catch (error) {
+      logger.error('Failed to send password reset email', 'EmailService', error as Error)
+      return false
+    }
+  }
+
+  // Generate HTML content for password reset email
+  private generatePasswordResetHTML(data: PasswordResetData): string {
+    return `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Reset Your Password - AfriMall</title>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 300; }
+        .content { padding: 30px; }
+        .reset-section { background-color: #f8f9fa; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 0 8px 8px 0; }
+        .footer { background-color: #333; color: white; padding: 20px; text-align: center; font-size: 14px; }
+        .btn { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; margin: 10px 0; }
+        .security-notice { background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 20px 0; color: #856404; }
+        @media (max-width: 600px) {
+          .container { margin: 0; }
+          .header, .content, .footer { padding: 20px; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🔐 Password Reset</h1>
+          <p>Reset your AfriMall account password</p>
+        </div>
+        
+        <div class="content">
+          <p>Hello ${data.firstName},</p>
+          
+          <p>We received a request to reset your password for your AfriMall account. If you made this request, click the button below to reset your password:</p>
+
+          <div class="reset-section">
+            <div style="text-align: center;">
+              <a href="${data.resetUrl}" class="btn">Reset My Password</a>
+            </div>
+            <p style="text-align: center; margin-top: 15px; color: #666; font-size: 14px;">
+              This link will expire in 1 hour for security reasons
+            </p>
+          </div>
+
+          <div class="security-notice">
+            <h4 style="margin-top: 0; color: #856404;">🔒 Security Notice</h4>
+            <ul style="margin-bottom: 0;">
+              <li>This link will expire in 1 hour for security reasons</li>
+              <li>If you didn't request this password reset, please ignore this email</li>
+              <li>Your password won't change until you click the link above</li>
+            </ul>
+          </div>
+
+          <p>If you're having trouble with the button above, copy and paste the URL below into your web browser:</p>
+          <p style="word-break: break-all; background-color: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px;">
+            ${data.resetUrl}
+          </p>
+
+          <p style="color: #666; font-size: 14px;">
+            If you have any questions or need assistance, please contact our support team.
+          </p>
+        </div>
+
+        <div class="footer">
+          <p>© 2025 AfriMall. All rights reserved.</p>
+          <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `
+  }
+
+  // Generate text content for password reset email
+  private generatePasswordResetText(data: PasswordResetData): string {
+    return `
+PASSWORD RESET REQUEST - AfriMall
+
+Hello ${data.firstName},
+
+We received a request to reset your password for your AfriMall account. If you made this request, please use the link below to reset your password:
+
+${data.resetUrl}
+
+This link will expire in 1 hour for security reasons.
+
+SECURITY NOTICE:
+- If you didn't request this password reset, please ignore this email
+- Your password won't change until you click the link above
+- This link will expire in 1 hour for security reasons
+
+If you're having trouble with the link above, copy and paste the URL below into your web browser:
+${data.resetUrl}
+
+If you have any questions or need assistance, please contact our support team.
+
+Best regards,
+The AfriMall Team
+
+© 2025 AfriMall. All rights reserved.
 This is an automated message. Please do not reply to this email.
     `.trim()
   }
