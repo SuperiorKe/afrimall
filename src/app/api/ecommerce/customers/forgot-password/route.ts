@@ -48,38 +48,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
     const customer = existingCustomer.docs[0]
 
-    // Use Payload's built-in forgot password functionality
+    // Use our custom forgot password implementation
+    // We don't use Payload's forgotPassword because we want full control over the email content and token format
     try {
-      await payload.forgotPassword({
-        collection: 'customers',
-        data: {
-          email: email.toLowerCase().trim(),
-        },
-        req: request,
-      })
-
-      logger.info('Password reset email sent successfully', 'API:customers:forgot-password', {
-        customerId: customer.id,
-        email: customer.email,
-      })
-
-      return createSuccessResponse(
-        { messageSent: true },
-        200,
-        'If an account with that email exists, a password reset link has been sent.',
-      )
-    } catch (payloadError) {
-      // If Payload's forgotPassword fails, try our custom implementation
-      logger.warn(
-        'Payload forgotPassword failed, using custom implementation',
-        'API:customers:forgot-password',
-        {
-          customerId: customer.id,
-          email: customer.email,
-          error: payloadError instanceof Error ? payloadError.message : 'Unknown error',
-        },
-      )
-
       // Generate reset token manually
       const crypto = await import('crypto')
       const resetToken = crypto.randomBytes(32).toString('hex')
@@ -149,6 +120,17 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         200,
         'If an account with that email exists, a password reset link has been sent.',
       )
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error
+      }
+
+      logger.apiError(
+        'Error processing forgot password request',
+        '/api/customers/forgot-password',
+        error as Error,
+      )
+      throw new ApiError('Failed to process password reset request', 500, 'FORGOT_PASSWORD_ERROR')
     }
   } catch (error) {
     if (error instanceof ApiError) {

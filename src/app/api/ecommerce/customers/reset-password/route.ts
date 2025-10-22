@@ -64,39 +64,9 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       )
     }
 
-    // Use Payload's built-in reset password functionality
+    // Use our custom password reset implementation
+    // We don't use Payload's resetPassword because it expects a different token format
     try {
-      await payload.resetPassword({
-        collection: 'customers',
-        data: {
-          token,
-          password,
-        },
-        overrideAccess: true,
-      })
-
-      logger.info('Password reset successfully', 'API:customers:reset-password', {
-        customerId: customer.id,
-        email: customer.email,
-      })
-
-      return createSuccessResponse(
-        { passwordReset: true },
-        200,
-        'Password has been reset successfully. You can now log in with your new password.',
-      )
-    } catch (payloadError) {
-      // If Payload's resetPassword fails, try our custom implementation
-      logger.warn(
-        'Payload resetPassword failed, using custom implementation',
-        'API:customers:reset-password',
-        {
-          customerId: customer.id,
-          email: customer.email,
-          error: payloadError instanceof Error ? payloadError.message : 'Unknown error',
-        },
-      )
-
       // Update customer password and clear reset token
       await payload.update({
         collection: 'customers',
@@ -106,9 +76,10 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           resetPasswordToken: null,
           resetPasswordExpiration: null,
         },
+        overrideAccess: true,
       })
 
-      logger.info('Custom password reset completed successfully', 'API:customers:reset-password', {
+      logger.info('Password reset completed successfully', 'API:customers:reset-password', {
         customerId: customer.id,
         email: customer.email,
       })
@@ -118,6 +89,14 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         200,
         'Password has been reset successfully. You can now log in with your new password.',
       )
+    } catch (updateError) {
+      logger.error(
+        `Failed to update password for customer ${customer.id} (${customer.email})`,
+        'API:customers:reset-password',
+        updateError as Error,
+      )
+
+      throw new ApiError('Failed to reset password', 500, 'PASSWORD_UPDATE_ERROR')
     }
   } catch (error) {
     if (error instanceof ApiError) {
