@@ -20,7 +20,7 @@ async function testPasswordRecovery() {
   console.log('1️⃣  Testing email service configuration...')
   const emailService = new EmailService()
 
-  if (!emailService.isConfigured) {
+  if (!emailService.isReady()) {
     console.log('   ❌ Email service is not configured')
     console.log('   ℹ️  Please set SMTP environment variables:')
     console.log('      - SMTP_HOST')
@@ -38,7 +38,7 @@ async function testPasswordRecovery() {
   }
 
   // Test 2: Test SMTP connection
-  if (emailService.isConfigured) {
+  if (emailService.isReady()) {
     console.log('2️⃣  Testing SMTP connection...')
     try {
       const connected = await emailService.testConnection()
@@ -89,7 +89,7 @@ async function testPasswordRecovery() {
   }
 
   // Test 6: Optional - Send test email
-  if (emailService.isConfigured) {
+  if (emailService.isReady()) {
     console.log('6️⃣  Would you like to send a test password reset email?')
     console.log('   ℹ️  This will send a real email with a test reset link.')
     console.log('   ℹ️  You can manually test this by running:')
@@ -101,7 +101,7 @@ async function testPasswordRecovery() {
   console.log('📊 Password Recovery System Summary:')
   console.log('   --------------------------------')
   console.log(
-    `   Email Service: ${emailService.isConfigured ? '✅ Configured' : '❌ Not Configured'}`,
+    `   Email Service: ${emailService.isReady() ? '✅ Configured' : '❌ Not Configured'}`,
   )
   console.log(`   Token Generation: ✅ Working`)
   console.log(`   Email Templates: ✅ Ready`)
@@ -135,7 +135,7 @@ async function testPasswordRecovery() {
 
   console.log('✅ Password Recovery System Test Complete!\n')
 
-  if (!emailService.isConfigured) {
+  if (!emailService.isReady()) {
     console.log('⚠️  WARNING: Email is not configured!')
     console.log('   Customers will not receive password reset emails.')
     console.log('   Please configure SMTP settings to enable email delivery.')
