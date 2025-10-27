@@ -56,6 +56,14 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       const resetToken = crypto.randomBytes(32).toString('hex')
       const resetExpiration = new Date(Date.now() + 3600000) // 1 hour from now
 
+      // Debug logging
+      logger.info('Generating reset token', 'API:customers:forgot-password', {
+        customerId: customer.id,
+        tokenLength: resetToken.length,
+        tokenPrefix: resetToken.substring(0, 8),
+        expiration: resetExpiration.toISOString(),
+      })
+
       // Update customer with reset token
       await payload.update({
         collection: 'customers',
@@ -64,6 +72,12 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
           resetPasswordToken: resetToken,
           resetPasswordExpiration: resetExpiration.toISOString(),
         },
+      })
+
+      logger.info('Reset token stored in database', 'API:customers:forgot-password', {
+        customerId: customer.id,
+        tokenLength: resetToken.length,
+        tokenPrefix: resetToken.substring(0, 8),
       })
 
       // Send password reset email using our email service

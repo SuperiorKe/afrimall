@@ -43,31 +43,53 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         const paymentIntent = event.data.object
         const orderId = paymentIntent.metadata.orderId
 
+        logger.info('Payment succeeded webhook received', 'API:stripe/webhook', {
+          paymentIntentId: paymentIntent.id,
+          orderId,
+        })
+
         if (orderId) {
           // Update order status to paid
-          const updatedOrder = await payload.update({
-            collection: 'orders',
-            id: orderId,
-            data: {
-              paymentStatus: 'paid',
-              paymentReference: paymentIntent.id,
-              status: 'confirmed',
-            },
-          })
-
-          logger.info(`Order ${orderId} marked as paid`, 'API:stripe/webhook')
-
-          // Queue payment confirmation email
           try {
-            const emailQueueId = await queueOrderUpdateEmail(updatedOrder)
-            logger.info(`Payment confirmation email queued: ${emailQueueId}`, 'API:stripe/webhook')
+            const updatedOrder = await payload.update({
+              collection: 'orders',
+              id: orderId,
+              data: {
+                paymentStatus: 'paid',
+                paymentReference: paymentIntent.id,
+                stripePaymentIntentId: paymentIntent.id,
+                status: 'confirmed',
+              },
+            })
+
+            logger.info(`Order ${orderId} marked as paid via webhook`, 'API:stripe/webhook')
+
+            // Queue payment confirmation email
+            try {
+              const emailQueueId = await queueOrderUpdateEmail(updatedOrder)
+              logger.info(
+                `Payment confirmation email queued: ${emailQueueId}`,
+                'API:stripe/webhook',
+              )
+            } catch (error) {
+              logger.error(
+                'Failed to queue payment confirmation email',
+                'API:stripe/webhook',
+                error as Error,
+              )
+            }
           } catch (error) {
             logger.error(
-              'Failed to queue payment confirmation email',
+              `Failed to update order ${orderId} after payment success`,
               'API:stripe/webhook',
               error as Error,
             )
+            // Don't throw - webhook will be retried if we return error
           }
+        } else {
+          logger.warn('Payment succeeded but no orderId in metadata', 'API:stripe/webhook', {
+            paymentIntentId: paymentIntent.id,
+          })
         }
         break
       }
@@ -76,31 +98,49 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         const paymentIntent = event.data.object
         const orderId = paymentIntent.metadata.orderId
 
+        logger.info('Payment failed webhook received', 'API:stripe/webhook', {
+          paymentIntentId: paymentIntent.id,
+          orderId,
+        })
+
         if (orderId) {
           // Update order status to failed
-          const updatedOrder = await payload.update({
-            collection: 'orders',
-            id: orderId,
-            data: {
-              paymentStatus: 'failed',
-              paymentReference: paymentIntent.id,
-              status: 'cancelled',
-            },
-          })
-
-          logger.info(`Order ${orderId} payment failed`, 'API:stripe/webhook')
-
-          // Queue payment failure email
           try {
-            const emailQueueId = await queueOrderUpdateEmail(updatedOrder)
-            logger.info(`Payment failure email queued: ${emailQueueId}`, 'API:stripe/webhook')
+            const updatedOrder = await payload.update({
+              collection: 'orders',
+              id: orderId,
+              data: {
+                paymentStatus: 'failed',
+                paymentReference: paymentIntent.id,
+                stripePaymentIntentId: paymentIntent.id,
+                status: 'cancelled',
+              },
+            })
+
+            logger.info(`Order ${orderId} marked as failed via webhook`, 'API:stripe/webhook')
+
+            // Queue payment failure email
+            try {
+              const emailQueueId = await queueOrderUpdateEmail(updatedOrder)
+              logger.info(`Payment failure email queued: ${emailQueueId}`, 'API:stripe/webhook')
+            } catch (error) {
+              logger.error(
+                'Failed to queue payment failure email',
+                'API:stripe/webhook',
+                error as Error,
+              )
+            }
           } catch (error) {
             logger.error(
-              'Failed to queue payment failure email',
+              `Failed to update order ${orderId} after payment failure`,
               'API:stripe/webhook',
               error as Error,
             )
           }
+        } else {
+          logger.warn('Payment failed but no orderId in metadata', 'API:stripe/webhook', {
+            paymentIntentId: paymentIntent.id,
+          })
         }
         break
       }
@@ -109,26 +149,42 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         const paymentIntent = event.data.object
         const orderId = paymentIntent.metadata.orderId
 
+        logger.info('Payment requires action webhook received', 'API:stripe/webhook', {
+          paymentIntentId: paymentIntent.id,
+          orderId,
+        })
+
         if (orderId) {
           // Payment requires additional action (3D Secure, etc.)
-          await payload.update({
-            collection: 'orders',
-            id: orderId,
-            data: {
-              paymentStatus: 'pending',
-              paymentReference: paymentIntent.id,
-              notes: [{
-                id: Date.now().toString(),
-                type: 'system',
-                content: 'Payment requires additional authentication',
-                author: 'system',
-                isVisibleToCustomer: false,
-                createdAt: new Date().toISOString(),
-              }],
-            } as any,
-          })
+          try {
+            await payload.update({
+              collection: 'orders',
+              id: orderId,
+              data: {
+                paymentStatus: 'pending',
+                paymentReference: paymentIntent.id,
+                stripePaymentIntentId: paymentIntent.id,
+                notes: [
+                  {
+                    id: Date.now().toString(),
+                    type: 'system',
+                    content: 'Payment requires additional authentication',
+                    author: 'system',
+                    isVisibleToCustomer: false,
+                    createdAt: new Date().toISOString(),
+                  },
+                ],
+              } as any,
+            })
 
-          logger.info(`Order ${orderId} requires payment action`, 'API:stripe/webhook')
+            logger.info(`Order ${orderId} marked as requiring payment action`, 'API:stripe/webhook')
+          } catch (error) {
+            logger.error(
+              `Failed to update order ${orderId} for requires_action`,
+              'API:stripe/webhook',
+              error as Error,
+            )
+          }
         }
         break
       }
@@ -155,14 +211,16 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
             id: order.id,
             data: {
               status: 'cancelled',
-              notes: [{
-                id: Date.now().toString(),
-                type: 'system',
-                content: `Dispute created: ${dispute.reason}`,
-                author: 'system',
-                isVisibleToCustomer: false,
-                createdAt: new Date().toISOString(),
-              }],
+              notes: [
+                {
+                  id: Date.now().toString(),
+                  type: 'system',
+                  content: `Dispute created: ${dispute.reason}`,
+                  author: 'system',
+                  isVisibleToCustomer: false,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
             } as any,
           })
 

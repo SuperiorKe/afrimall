@@ -139,7 +139,7 @@ export class EmailService {
   }
 
   // Send order confirmation email
-  async sendOrderConfirmation(data: OrderConfirmationData): Promise<boolean> {
+  async sendOrderConfirmation(data: any): Promise<boolean> {
     if (!this.isConfigured) {
       logger.warn(
         'Email service not configured - skipping order confirmation email',
@@ -149,30 +149,87 @@ export class EmailService {
     }
 
     try {
-      const htmlContent = this.generateOrderConfirmationHTML(data)
-      const textContent = this.generateOrderConfirmationText(data)
+      // Normalize order data - handle both flattened and nested structures
+      const normalizedData = this.normalizeOrderData(data)
+
+      const htmlContent = this.generateOrderConfirmationHTML(normalizedData)
+      const textContent = this.generateOrderConfirmationText(normalizedData)
 
       const mailOptions = {
         from: this.config!.from,
-        to: data.customerEmail,
-        subject: `Order Confirmation - ${data.orderNumber}`,
+        to: normalizedData.customerEmail,
+        subject: `Order Confirmation - ${normalizedData.orderNumber}`,
         text: textContent,
         html: htmlContent,
       }
 
       await this.transporter!.sendMail(mailOptions)
       logger.info(
-        `Order confirmation email sent successfully for order ${data.orderNumber}`,
+        `Order confirmation email sent successfully for order ${normalizedData.orderNumber}`,
         'EmailService',
       )
       return true
     } catch (error) {
       logger.error(
-        `Failed to send order confirmation email for order ${data.orderNumber}`,
+        `Failed to send order confirmation email for order ${data.orderNumber || 'unknown'}`,
         'EmailService',
         error as Error,
       )
       return false
+    }
+  }
+
+  // Normalize order data to match OrderConfirmationData interface
+  private normalizeOrderData(data: any): OrderConfirmationData {
+    // Extract customer email from various possible structures
+    let customerEmail = ''
+    let customerName = ''
+
+    if (data.customerEmail) {
+      customerEmail = data.customerEmail
+    } else if (data.customer?.email) {
+      customerEmail = data.customer.email
+    }
+
+    if (data.customerName) {
+      customerName = data.customerName
+    } else if (data.customer?.firstName && data.customer?.lastName) {
+      customerName = `${data.customer.firstName} ${data.customer.lastName}`
+    } else if (data.customer?.firstName) {
+      customerName = data.customer.firstName
+    }
+
+    // Extract items - handle various structures
+    let items = []
+    if (data.items && Array.isArray(data.items)) {
+      items = data.items.map((item: any) => ({
+        title: item.productSnapshot?.title || item.title || 'Unknown Product',
+        quantity: item.quantity || 0,
+        unitPrice: item.unitPrice || 0,
+        totalPrice: item.totalPrice || 0,
+        sku: item.productSnapshot?.sku || item.sku || '',
+        image: item.productSnapshot?.image || item.image,
+      }))
+    }
+
+    // Extract shipping info
+    const shipping = {
+      cost: data.shipping?.cost || 0,
+      method: data.shipping?.method || 'standard',
+      address: data.shipping?.address || data.shippingAddress || {},
+    }
+
+    return {
+      orderNumber: data.orderNumber || 'UNKNOWN',
+      customerName,
+      customerEmail,
+      orderDate: data.createdAt || data.orderDate || new Date().toISOString(),
+      items,
+      subtotal: data.subtotal || 0,
+      shipping,
+      total: data.total || 0,
+      currency: data.currency || 'USD',
+      trackingNumber: data.trackingNumber,
     }
   }
 

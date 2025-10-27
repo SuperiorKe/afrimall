@@ -17,8 +17,17 @@ export function OrderReview() {
   const router = useRouter()
   const stripe = useStripe()
   const elements = useElements()
-  const { formData, setCurrentStep, stripePayment, resetPaymentState, customerId, createCustomer, createPaymentIntent } =
-    useCheckout()
+  const {
+    formData,
+    setCurrentStep,
+    stripePayment,
+    resetPaymentState,
+    customerId,
+    createCustomer,
+    createPaymentIntent,
+    createOrderBeforePayment,
+    orderId,
+  } = useCheckout()
   const { contactInfo, shippingAddress, billingAddress, sameAsBilling } = formData
   const { cart, clearCart } = useCart()
 
@@ -26,6 +35,7 @@ export function OrderReview() {
   const [paymentError, setPaymentError] = useState<DetailedError | null>(null)
   const [isCardComplete, setIsCardComplete] = useState(false)
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [createdOrderId, setCreatedOrderId] = useState<string | null>(null)
 
   // Try to create customer when component mounts if all required data is available
   useEffect(() => {
@@ -51,19 +61,19 @@ export function OrderReview() {
   // Enhanced form validation
   const validateForm = () => {
     const errors: Record<string, string> = {}
-    
+
     if (!isCardComplete) {
       errors.card = 'Please enter complete card details'
     }
-    
+
     if (!customerId) {
       errors.customer = 'Customer account required'
     }
-    
+
     if (!stripePayment.clientSecret) {
       errors.payment = 'Payment not initialized'
     }
-    
+
     setValidationErrors(errors)
     return Object.keys(errors).length === 0
   }
@@ -111,21 +121,21 @@ export function OrderReview() {
     setPaymentError(null)
     setValidationErrors({})
     setIsProcessing(true)
-    
+
     try {
       // Clear previous payment intent
       resetPaymentState()
-      
+
       // Create new payment intent
       const success = await createPaymentIntent(total, 'usd')
-      
+
       if (success) {
         // Retry the payment
         await handlePlaceOrder()
       } else {
         const error = getDetailedErrorMessage({
           code: 'processing_error',
-          message: 'Failed to initialize payment. Please try again.'
+          message: 'Failed to initialize payment. Please try again.',
         })
         setPaymentError(error)
         setIsProcessing(false)
@@ -143,6 +153,39 @@ export function OrderReview() {
   const shipping = subtotal * 0.1 // Dynamic shipping: 10% of subtotal
   const tax = subtotal * 0.1 // Example tax calculation
   const total = subtotal + shipping + tax
+
+  const updateOrderAfterPayment = async (orderIdToUpdate: string, paymentIntentId: string) => {
+    try {
+      console.log('Updating order after payment success:', {
+        orderId: orderIdToUpdate,
+        paymentIntentId,
+      })
+
+      const response = await fetch(`/api/ecommerce/orders/${orderIdToUpdate}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          status: 'confirmed',
+          paymentStatus: 'paid',
+          paymentReference: paymentIntentId,
+          stripePaymentIntentId: paymentIntentId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update order after payment')
+      }
+
+      const result = await response.json()
+      console.log('Order updated successfully after payment:', result)
+      return result
+    } catch (error) {
+      console.error('Error updating order after payment:', error)
+      throw error
+    }
+  }
 
   const createOrder = async (paymentIntentId: string) => {
     try {
@@ -239,7 +282,7 @@ export function OrderReview() {
     if (!stripe || !elements) {
       const error = getDetailedErrorMessage({
         code: 'processing_error',
-        message: 'Payment system not ready. Please try again.'
+        message: 'Payment system not ready. Please try again.',
       })
       setPaymentError(error)
       return
@@ -248,7 +291,7 @@ export function OrderReview() {
     if (cartItems.length === 0) {
       const error = getDetailedErrorMessage({
         code: 'processing_error',
-        message: 'Your cart is empty. Please add items to continue.'
+        message: 'Your cart is empty. Please add items to continue.',
       })
       setPaymentError(error)
       return
@@ -259,13 +302,62 @@ export function OrderReview() {
     setValidationErrors({})
 
     try {
-      // Get the CardElement
+      // STEP 1: Create order BEFORE payment with pending status
+      let currentOrderId = createdOrderId || orderId
+
+      if (!currentOrderId) {
+        console.log('Creating order before payment...')
+        
+        try {
+          currentOrderId = await createOrderBeforePayment(cartItems, total, customerId!)
+
+          if (!currentOrderId) {
+            throw new Error('Failed to create order before payment')
+          }
+
+          setCreatedOrderId(currentOrderId)
+          console.log('Order created before payment:', currentOrderId)
+        } catch (orderError: any) {
+          // Handle out-of-stock or inventory errors
+          if (orderError.message === 'OUT_OF_STOCK' || orderError.message?.includes('Insufficient inventory')) {
+            const inventoryError = getDetailedErrorMessage({
+              code: 'insufficient_inventory',
+              message: 'One or more items in your cart are out of stock. Please review your cart and update your order.',
+            })
+            setPaymentError(inventoryError)
+            setIsProcessing(false)
+            return
+          }
+          
+          // Handle other order creation errors
+          const errorMessage = orderError.message || 'Failed to create order'
+          const genericError = getDetailedErrorMessage({
+            code: 'order_creation_failed',
+            message: errorMessage,
+          })
+          setPaymentError(genericError)
+          setIsProcessing(false)
+          return
+        }
+      }
+
+      // STEP 2: Re-create payment intent with orderId if not already done
+      if (!stripePayment.clientSecret) {
+        console.log('Creating payment intent with order ID:', currentOrderId)
+        const paymentIntentCreated = await createPaymentIntent(total, 'usd', currentOrderId)
+
+        if (!paymentIntentCreated) {
+          throw new Error('Failed to create payment intent')
+        }
+      }
+
+      // STEP 3: Get the CardElement and confirm payment
       const cardElement = elements.getElement(CardElement)
 
       if (!cardElement) {
         const error = getDetailedErrorMessage({
           code: 'processing_error',
-          message: 'Payment method not found. Please enter your card details above.'
+          message: 'Payment method not found. Please enter your card details above.',
         })
         setPaymentError(error)
         setIsProcessing(false)
@@ -275,33 +367,37 @@ export function OrderReview() {
       console.log('Confirming payment with Stripe...', {
         clientSecret: stripePayment.clientSecret,
         hasCardElement: !!cardElement,
+        orderId: currentOrderId,
       })
 
       // Confirm the payment with Stripe
-      const { error, paymentIntent } = await stripe.confirmCardPayment(stripePayment.clientSecret!, {
-        payment_method: {
-          card: cardElement,
-          billing_details: {
-            name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
-            email: contactInfo.email,
-            phone: contactInfo.phone,
-            address: {
-              line1: sameAsBilling ? shippingAddress.address1 : billingAddress.address1,
-              line2: sameAsBilling ? shippingAddress.address2 : billingAddress.address2,
-              city: sameAsBilling ? shippingAddress.city : billingAddress.city,
-              state: sameAsBilling ? shippingAddress.state : billingAddress.state,
-              postal_code: sameAsBilling ? shippingAddress.postalCode : billingAddress.postalCode,
-              country: sameAsBilling ? shippingAddress.country : billingAddress.country,
+      const { error, paymentIntent } = await stripe.confirmCardPayment(
+        stripePayment.clientSecret!,
+        {
+          payment_method: {
+            card: cardElement,
+            billing_details: {
+              name: `${shippingAddress.firstName} ${shippingAddress.lastName}`,
+              email: contactInfo.email,
+              phone: contactInfo.phone,
+              address: {
+                line1: sameAsBilling ? shippingAddress.address1 : billingAddress.address1,
+                line2: sameAsBilling ? shippingAddress.address2 : billingAddress.address2,
+                city: sameAsBilling ? shippingAddress.city : billingAddress.city,
+                state: sameAsBilling ? shippingAddress.state : billingAddress.state,
+                postal_code: sameAsBilling ? shippingAddress.postalCode : billingAddress.postalCode,
+                country: sameAsBilling ? shippingAddress.country : billingAddress.country,
+              },
             },
           },
         },
-      })
+      )
 
       console.log('Stripe response:', { error, paymentIntent })
 
       if (error) {
         console.error('Stripe payment error:', error)
-        
+
         // Use enhanced error handling
         const detailedError = getDetailedErrorMessage(error)
         setPaymentError(detailedError)
@@ -310,8 +406,9 @@ export function OrderReview() {
       }
 
       if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Create order in our system
-        const order = await createOrder(paymentIntent.id)
+        // STEP 4: Update the existing order with payment details
+        console.log('Payment succeeded, updating order:', currentOrderId)
+        await updateOrderAfterPayment(currentOrderId, paymentIntent.id)
 
         setPaymentSuccess(true)
         resetPaymentState()
@@ -322,20 +419,15 @@ export function OrderReview() {
           console.log('Cart cleared successfully after order creation')
         } else {
           console.warn('Failed to clear cart after order creation - order was still successful')
-          // Don't block the success flow if cart clearing fails
-          // The order was created successfully, so we proceed
         }
 
-        // Extract order ID from response (handle different response structures)
-        const orderId = order?.data?.id || order?.id || order?.data?.doc?.id
+        console.log('Redirecting to order confirmation with ID:', currentOrderId)
 
-        console.log('Redirecting to order confirmation with ID:', orderId)
-
-        if (!orderId) {
-          console.error('No order ID found in response:', order)
+        if (!currentOrderId) {
+          console.error('No order ID found')
           const error = getDetailedErrorMessage({
             code: 'processing_error',
-            message: 'Order created but confirmation page unavailable. Please check your order history.'
+            message: 'Order confirmed but could not redirect. Please check your order history.',
           })
           setPaymentError(error)
           setIsProcessing(false)
@@ -344,14 +436,17 @@ export function OrderReview() {
 
         // Redirect to order confirmation page
         setTimeout(() => {
-          router.push(`/order-confirmation/${orderId}`)
+          router.push(`/order-confirmation/${currentOrderId}`)
         }, 2000)
       }
     } catch (error: unknown) {
       console.error('Unexpected error in handlePlaceOrder:', error)
       const detailedError = getDetailedErrorMessage({
         code: 'processing_error',
-        message: error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.'
+        message:
+          error instanceof Error
+            ? error.message
+            : 'An unexpected error occurred. Please try again.',
       })
       setPaymentError(detailedError)
       setIsProcessing(false)
@@ -479,11 +574,7 @@ export function OrderReview() {
 
         {/* Enhanced Payment Error Display */}
         {paymentError && (
-          <ErrorDisplay 
-            error={paymentError} 
-            onAction={handleErrorAction}
-            className="mb-6"
-          />
+          <ErrorDisplay error={paymentError} onAction={handleErrorAction} className="mb-6" />
         )}
 
         {/* Validation Errors */}
@@ -492,11 +583,17 @@ export function OrderReview() {
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-orange-800">Please fix the following issues:</h3>
+                <h3 className="text-sm font-medium text-orange-800">
+                  Please fix the following issues:
+                </h3>
                 <ul className="mt-2 text-sm text-orange-700 list-disc list-inside space-y-1">
                   {Object.entries(validationErrors).map(([key, message]) => (
                     <li key={key}>{message}</li>
@@ -509,7 +606,7 @@ export function OrderReview() {
 
         {/* Loading State */}
         {isProcessing && (
-          <LoadingState 
+          <LoadingState
             title="Processing Payment"
             message="Please don't close this page while we process your payment..."
             className="mb-6"
@@ -518,7 +615,7 @@ export function OrderReview() {
 
         {/* Success State */}
         {paymentSuccess && (
-          <SuccessState 
+          <SuccessState
             title="Payment Successful!"
             message="Redirecting to order confirmation..."
             className="mb-6"
