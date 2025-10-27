@@ -32,7 +32,18 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       limit: 1,
     })
 
+    // Debug logging
+    logger.info('Token validation attempt', 'API:customers:reset-password', {
+      tokenLength: token.length,
+      tokenPrefix: token.substring(0, 8),
+      customersFound: existingCustomer.docs.length,
+    })
+
     if (existingCustomer.docs.length === 0) {
+      logger.warn('No customer found with reset token', 'API:customers:reset-password', {
+        tokenLength: token.length,
+        tokenPrefix: token.substring(0, 8),
+      })
       throw new ApiError('Invalid or expired reset token', 400, 'INVALID_TOKEN')
     }
 

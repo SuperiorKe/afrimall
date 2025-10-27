@@ -493,7 +493,7 @@ export const Orders: CollectionConfig = {
   hooks: {
     beforeChange: [
       ({ data, operation }) => {
-        // Generate order number for new orders
+        // Generate order number for new orders (only if not already provided)
         if (operation === 'create' && !data.orderNumber) {
           const timestamp = Date.now()
           const random = Math.floor(Math.random() * 1000)
@@ -502,54 +502,50 @@ export const Orders: CollectionConfig = {
           data.orderNumber = `AFR${timestamp}${random}`
         }
 
-        // Calculate totals
-        if (data.items && Array.isArray(data.items)) {
-          // Calculate item totals
-          data.items.forEach((item: any) => {
-            if (item.quantity && item.unitPrice) {
-              item.totalPrice = item.quantity * item.unitPrice
-            }
-          })
-
-          // Calculate subtotal
-          data.subtotal = data.items.reduce((sum: number, item: any) => {
-            return sum + (item.totalPrice || 0)
-          }, 0)
-
-          // Calculate total
-          const shippingCost = data.shipping?.cost || 0
-          const taxAmount = data.tax?.amount || 0
-          data.total = data.subtotal + shippingCost + taxAmount
-        }
-
+        // Note: Totals calculation disabled - already calculated in API route
+        // This prevents duplicate calculations and potential issues
+        
         return data
       },
     ],
     afterChange: [
       async ({ doc, operation, req, previousDoc }) => {
         // Update customer statistics after order changes
-        if (operation === 'create' && doc.customer && doc.status === 'confirmed') {
-          try {
-            const customer = await req.payload.findByID({
-              collection: 'customers',
-              id: doc.customer,
-            })
+        // DISABLED: This was causing order creation to hang due to slow database operations
+        // TODO: Move customer stats update to a background job/queue
+        // if (operation === 'create' && doc.customer && doc.status === 'confirmed') {
+        //   try {
+        //     // Extract customer ID - handle both string and object cases
+        //     const customerId =
+        //       typeof doc.customer === 'object' && doc.customer !== null
+        //         ? doc.customer.id || doc.customer._id
+        //         : doc.customer
 
-            if (customer) {
-              await req.payload.update({
-                collection: 'customers',
-                id: customer.id,
-                data: {
-                  totalSpent: (customer.totalSpent || 0) + doc.total,
-                  totalOrders: (customer.totalOrders || 0) + 1,
-                  lastOrderDate: new Date().toISOString(),
-                },
-              })
-            }
-          } catch (error) {
-            console.error('Error updating customer statistics:', error)
-          }
-        }
+        //     if (!customerId) {
+        //       console.error('No customer ID found in doc.customer:', doc.customer)
+        //       return
+        //     }
+
+        //     const customer = await req.payload.findByID({
+        //       collection: 'customers',
+        //       id: customerId,
+        //     })
+
+        //     if (customer) {
+        //       await req.payload.update({
+        //         collection: 'customers',
+        //         id: customer.id,
+        //         data: {
+        //           totalSpent: (customer.totalSpent || 0) + doc.total,
+        //           totalOrders: (customer.totalOrders || 0) + 1,
+        //           lastOrderDate: new Date().toISOString(),
+        //         },
+        //       })
+        //     }
+        //   } catch (error) {
+        //     console.error('Error updating customer statistics:', error)
+        //   }
+        // }
 
         // Send email notifications for status changes
         if (operation === 'update' && previousDoc && doc.status !== previousDoc.status) {

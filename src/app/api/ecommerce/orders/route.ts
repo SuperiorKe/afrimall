@@ -34,13 +34,24 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       throw new ApiError('Missing required fields', 400, 'MISSING_FIELDS')
     }
 
+    // Extract customer ID - handle both string ID and object with ID
+    const customerId =
+      typeof customer === 'string' ? customer : customer?.id || customer?._id || customer
+
+    if (!customerId) {
+      throw new ApiError('Invalid customer ID', 400, 'INVALID_CUSTOMER')
+    }
+
     // Generate unique order number
     const orderNumber = generateOrderNumber()
 
     // Validate inventory before creating order
+    logger.info('Validating inventory...', 'API:orders')
     await validateAndReserveInventory(payload, items)
+    logger.info('Inventory validated, creating order...', 'API:orders')
 
     // Create the order
+    logger.info('Calling payload.create for order...', 'API:orders')
     const order = await payload.create({
       collection: 'orders',
       data: {
@@ -48,7 +59,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         orderNumber: orderNumber,
 
         // Customer relationship
-        customer: customer,
+        customer: customerId,
 
         // Order items with proper structure
         items: items.map((item: any) => ({
@@ -72,7 +83,10 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         // Shipping information
         shipping: {
           method: shippingMethod || 'standard',
-          cost: getShippingCost(shippingMethod || 'standard', items.reduce((sum: number, item: any) => sum + item.totalPrice, 0)), // Dynamic shipping cost
+          cost: getShippingCost(
+            shippingMethod || 'standard',
+            items.reduce((sum: number, item: any) => sum + item.totalPrice, 0),
+          ), // Dynamic shipping cost
           address: {
             firstName: shippingAddress.firstName,
             lastName: shippingAddress.lastName,
@@ -119,20 +133,56 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       } as any,
     })
 
-    logger.info('Order created successfully', 'API:orders', {
+    logger.info('Order created in database', 'API:orders', {
       orderId: order.id,
       total: order.total,
       status: order.status,
     })
 
-    // Queue order confirmation email
+    logger.info('Starting email and response preparation...', 'API:orders')
+
+    // Fetch customer details for email and response
+    let customerDetails = null
+    let customerEmail = null
+
     try {
-      const emailQueueId = await queueOrderConfirmationEmail(order)
-      logger.info(`Order confirmation email queued: ${emailQueueId}`, 'API:orders')
+      logger.info('Fetching customer details...', 'API:orders', { customerId })
+      // Fetch customer details to get email
+      customerDetails = await payload.findByID({
+        collection: 'customers',
+        id: customerId,
+      })
+      logger.info('Customer details fetched', 'API:orders')
+
+      customerEmail = customerDetails?.email || null
+
+      // Queue order confirmation email if email exists
+      if (customerEmail) {
+        const orderWithEmail = {
+          ...order,
+          customer: {
+            id: customerDetails.id,
+            email: customerEmail,
+            firstName: customerDetails.firstName,
+            lastName: customerDetails.lastName,
+          },
+        }
+
+        const emailQueueId = await queueOrderConfirmationEmail(orderWithEmail)
+        logger.info(`Order confirmation email queued: ${emailQueueId}`, 'API:orders')
+      } else {
+        logger.warn('No customer email found, skipping order confirmation email', 'API:orders')
+      }
     } catch (error) {
-      logger.error('Failed to queue order confirmation email', 'API:orders', error as Error)
+      logger.error(
+        'Failed to fetch customer or queue order confirmation email',
+        'API:orders',
+        error as Error,
+      )
       // Don't fail the order creation if email fails
     }
+
+    logger.info('Preparing response...', 'API:orders')
 
     return createSuccessResponse(
       {
@@ -142,7 +192,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         status: order.status,
         customer: {
           id: order.customer,
-          email: customer.email,
+          email: customerEmail || '',
         },
         items: order.items,
         shipping: order.shipping,

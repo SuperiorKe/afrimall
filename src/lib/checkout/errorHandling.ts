@@ -103,6 +103,29 @@ export const getDetailedErrorMessage = (error: any): DetailedError => {
         { label: 'Contact Your Bank', action: 'contact_bank', variant: 'secondary' }
       ],
       severity: 'high'
+    },
+    'insufficient_inventory': {
+      title: 'Out of Stock',
+      message: 'One or more items in your cart are currently out of stock.',
+      reasons: [
+        'Item was purchased by another customer',
+        'Stock levels have changed since you added the item',
+        'Limited quantity available'
+      ],
+      actions: [
+        { label: 'Update Cart', action: 'refresh', variant: 'primary' },
+        { label: 'Continue Shopping', action: 'support', variant: 'secondary' }
+      ],
+      severity: 'high'
+    },
+    'order_creation_failed': {
+      title: 'Unable to Create Order',
+      message: 'We couldn\'t create your order at this time.',
+      actions: [
+        { label: 'Try Again', action: 'retry', variant: 'primary' },
+        { label: 'Contact Support', action: 'support', variant: 'secondary' }
+      ],
+      severity: 'high'
     }
   }
   
