@@ -645,7 +645,13 @@ export interface Customer {
    * Customer email address (used for login)
    */
   email: string;
+  /**
+   * Password reset token (auto-generated)
+   */
   resetPasswordToken?: string | null;
+  /**
+   * Password reset token expiration date
+   */
   resetPasswordExpiration?: string | null;
   salt?: string | null;
   hash?: string | null;

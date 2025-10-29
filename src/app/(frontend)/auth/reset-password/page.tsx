@@ -62,6 +62,12 @@ function ResetPasswordForm() {
     e.preventDefault()
     setError('')
 
+    // Validate token exists
+    if (!token) {
+      setError('Reset token is missing. Please request a new password reset.')
+      return
+    }
+
     // Validate password
     if (password.length < 8) {
       setError('Password must be at least 8 characters long.')
@@ -76,12 +82,15 @@ function ResetPasswordForm() {
     setIsLoading(true)
 
     try {
+      // Ensure token is trimmed and properly formatted
+      const normalizedToken = token.trim()
+
       const response = await fetch('/api/ecommerce/customers/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token, password }),
+        body: JSON.stringify({ token: normalizedToken, password }),
       })
 
       const data = await response.json()
