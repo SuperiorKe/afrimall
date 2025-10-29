@@ -14,27 +14,38 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
       throw new ApiError('No authorization token provided', 401, 'NO_TOKEN')
     }
 
-    const token = authHeader.substring(7) // Remove 'Bearer ' prefix
+    // Authenticate using Payload - will throw if invalid/expired
+    let user: any | null = null
+    try {
+      const authResult = await (payload as any).authenticate({
+        headers: request.headers,
+      })
+      user = authResult?.user || null
+    } catch (authError) {
+      logger.info('Customer token authentication failed', 'API:customers:me')
+      throw new ApiError('Invalid or expired token', 401, 'INVALID_TOKEN')
+    }
 
-    // Note: JWT verification temporarily disabled due to API changes
-    // For now, we'll return a simple response indicating the endpoint is available
-    logger.info('Customer me endpoint accessed', 'API:customers:me', {
-      hasToken: !!token,
-    })
+    if (!user || user.collection !== 'customers') {
+      throw new ApiError('Unauthorized', 401, 'UNAUTHORIZED')
+    }
 
-    // TODO: Implement proper JWT verification when Payload CMS API is clarified
-    throw new ApiError('JWT verification temporarily disabled', 501, 'NOT_IMPLEMENTED')
+    logger.info('Customer authenticated', 'API:customers:me', { customerId: user.id })
+
+    return createSuccessResponse(
+      {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+      },
+      200,
+      'Authenticated',
+    )
   } catch (error) {
     if (error instanceof ApiError) {
       throw error
-    }
-
-    // Handle JWT-specific errors
-    if (error && typeof error === 'object' && 'message' in error) {
-      const errorMessage = (error as any).message
-      if (errorMessage.includes('jwt') || errorMessage.includes('token')) {
-        throw new ApiError('Invalid or expired token', 401, 'INVALID_TOKEN')
-      }
     }
 
     logger.apiError('Error validating customer token', '/api/customers/me', error as Error)

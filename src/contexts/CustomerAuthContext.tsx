@@ -50,9 +50,24 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
         },
       })
 
+      // Handle explicit unauthorized
+      if (response.status === 401) {
+        localStorage.removeItem('afrimall_customer_token')
+        setCustomer(null)
+        setIsLoading(false)
+        return
+      }
+
+      // For other non-2xx errors, don't clear token immediately (temporary server/network issues)
+      if (!response.ok) {
+        console.warn('Auth check failed, keeping token for retry')
+        setIsLoading(false)
+        return
+      }
+
       const data = await response.json()
 
-      if (data.success) {
+      if (data?.success && data?.data) {
         setCustomer({
           id: data.data.id,
           email: data.data.email,
@@ -60,15 +75,10 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
           lastName: data.data.lastName,
           phone: data.data.phone,
         })
-      } else {
-        // Token is invalid, remove it
-        localStorage.removeItem('afrimall_customer_token')
-        setCustomer(null)
       }
     } catch (error) {
       console.error('Error checking auth:', error)
-      localStorage.removeItem('afrimall_customer_token')
-      setCustomer(null)
+      // Do not clear token on transient errors
     } finally {
       setIsLoading(false)
     }

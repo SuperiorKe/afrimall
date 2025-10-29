@@ -11,6 +11,7 @@ import { HeaderNav } from './Nav'
 import { SearchBar } from '@/components/ecommerce/SearchBar'
 import { CartIcon } from '@/components/ecommerce/CartIcon'
 import { Search, X } from 'lucide-react'
+import { useCustomerAuth } from '@/contexts/CustomerAuthContext'
 
 interface HeaderClientProps {
   data: Header | null
@@ -21,6 +22,7 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
   const [theme, setTheme] = useState<string | null>(null)
   const { headerTheme, setHeaderTheme } = useHeaderTheme()
   const pathname = usePathname()
+  const { isAuthenticated } = useCustomerAuth()
 
   useEffect(() => {
     setHeaderTheme(null)
@@ -75,19 +77,30 @@ export const HeaderClient: React.FC<HeaderClientProps> = ({ data }) => {
               </Link>
               <CartIcon />
               <div className="hidden sm:flex items-center space-x-2">
-                <Link
-                  href="/auth/login"
-                  className="text-sm text-gray-600 dark:text-gray-300 hover:text-afrimall-orange transition-colors font-medium"
-                >
-                  Sign In
-                </Link>
-                <span className="text-gray-400 dark:text-gray-500">|</span>
-                <Link
-                  href="/auth/register"
-                  className="text-sm bg-afrimall-orange dark:bg-afrimall-orange text-white px-3 py-1.5 rounded-md hover:bg-afrimall-red dark:hover:bg-afrimall-red transition-colors font-medium shadow-sm"
-                >
-                  Register
-                </Link>
+                {isAuthenticated ? (
+                  <Link
+                    href="/account"
+                    className="text-sm text-gray-600 dark:text-gray-300 hover:text-afrimall-orange transition-colors font-medium"
+                  >
+                    My Account
+                  </Link>
+                ) : (
+                  <>
+                    <Link
+                      href="/auth/login"
+                      className="text-sm text-gray-600 dark:text-gray-300 hover:text-afrimall-orange transition-colors font-medium"
+                    >
+                      Sign In
+                    </Link>
+                    <span className="text-gray-400 dark:text-gray-500">|</span>
+                    <Link
+                      href="/auth/register"
+                      className="text-sm bg-afrimall-orange dark:bg-afrimall-orange text-white px-3 py-1.5 rounded-md hover:bg-afrimall-red dark:hover:bg-afrimall-red transition-colors font-medium shadow-sm"
+                    >
+                      Register
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

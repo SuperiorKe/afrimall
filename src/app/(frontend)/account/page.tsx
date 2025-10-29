@@ -135,7 +135,7 @@ export default function AccountPage() {
                 </h2>
                 <div className="space-y-3">
                   <Link
-                    href="/orders"
+                    href="/account/orders"
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
                   >
                     View Order History
@@ -153,7 +153,7 @@ export default function AccountPage() {
                     Account Preferences
                   </Link>
                   <Link
-                    href="/"
+                    href="/products"
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-md"
                   >
                     Continue Shopping
@@ -184,7 +184,7 @@ export default function AccountPage() {
                   <div className="text-center">
                     <Package className="h-12 w-12 mx-auto text-gray-400 mb-3" />
                     <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">No orders yet.</p>
-                    <Link href="/">
+                    <Link href="/products">
                       <Button variant="outline" size="sm">
                         Start Shopping
                       </Button>

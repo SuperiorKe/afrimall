@@ -180,7 +180,7 @@ export default function OrdersPage() {
                       ? "You haven't placed any orders yet."
                       : `No ${statusFilter} orders found.`}
                   </p>
-                  <Button onClick={() => router.push('/')}>Start Shopping</Button>
+                  <Button onClick={() => router.push('/products')}>Start Shopping</Button>
                 </CardContent>
               </Card>
             ) : (
