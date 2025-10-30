@@ -27,6 +27,8 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       shippingMethod,
       specialInstructions,
       customerNotes,
+      taxAmount,
+      taxRate,
     } = body
 
     // Validate required fields
@@ -96,6 +98,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
             state: shippingAddress.state,
             postalCode: shippingAddress.postalCode,
             country: shippingAddress.country,
+            phone: shippingAddress.phone || '',
           },
           specialInstructions: specialInstructions || '',
         },
@@ -111,7 +114,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
             state: billingAddress.state,
             postalCode: billingAddress.postalCode,
             country: billingAddress.country,
+            phone: billingAddress.phone || '',
           },
+        },
+
+        // Tax information
+        tax: {
+          amount: taxAmount || 0,
+          rate: taxRate || 0,
+          inclusive: false,
         },
 
         // Payment information
@@ -123,7 +134,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         },
 
         // Order status and metadata
-        status: ORDER_STATUSES.CONFIRMED, // Start with confirmed since payment is successful
+        status: status || ORDER_STATUSES.PENDING, // Use provided status or default to pending
         customerNotes: customerNotes || '',
         metadata: {
           createdAt: new Date().toISOString(),
@@ -287,11 +298,67 @@ async function validateAndReserveInventory(payload: any, items: any[]) {
   }
 }
 
+// Helper function to extract authenticated customer ID from request
+async function getAuthenticatedCustomerId(
+  request: NextRequest,
+  payload: any,
+): Promise<string | null> {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null
+    }
+
+    const token = authHeader.substring(7)
+
+    // Try to find customer by looking up who has this token
+    // Since JWT verification is complex, we'll use a simpler approach:
+    // For now, we rely on the frontend to send the correct customerId
+    // and verify it matches the token's user when JWT is properly decoded
+    // This is a temporary solution until full JWT verification is implemented
+
+    // Attempt to use Payload's local API to verify token
+    // Note: This may need adjustment based on Payload CMS version
+    try {
+      // Create a mock request with the token for Payload's authenticate
+      const mockReq = {
+        headers: new Headers({
+          authorization: `Bearer ${token}`,
+        }),
+      } as any
+
+      // Try to authenticate using Payload's method
+      const authResult = await payload.authenticate({
+        headers: mockReq.headers,
+      } as any)
+
+      if (authResult?.user && authResult.user.collection === 'customers') {
+        return authResult.user.id
+      }
+    } catch (authError) {
+      // Authentication failed, return null (token may be invalid/expired)
+      logger.info('Token authentication attempt failed', 'API:orders', {
+        error: authError instanceof Error ? authError.message : 'Unknown error',
+      })
+    }
+
+    return null
+  } catch (error) {
+    logger.info('Failed to authenticate customer from token', 'API:orders', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+    })
+    return null
+  }
+}
+
 // GET endpoint for retrieving orders
 export const GET = withErrorHandling(async (request: NextRequest) => {
   try {
     const { searchParams } = new URL(request.url)
     const payload = await getPayload({ config: configPromise })
+
+    // Get authenticated customer ID
+    const authenticatedCustomerId = await getAuthenticatedCustomerId(request, payload)
 
     const customerId = searchParams.get('customerId')
     const orderNumber = searchParams.get('orderNumber')
@@ -299,14 +366,39 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     const limit = parseInt(searchParams.get('limit') || '10')
     const page = parseInt(searchParams.get('page') || '1')
 
-    const where: any = {}
+    // Security: If customerId is provided in query, verify it matches authenticated customer
+    // If no customerId provided but user is authenticated, use their ID
+    let effectiveCustomerId: string | null = null
 
     if (customerId) {
-      where.customer = { equals: customerId }
+      // If a customerId is explicitly requested, verify the user is that customer
+      if (authenticatedCustomerId && authenticatedCustomerId !== customerId) {
+        throw new ApiError("Unauthorized: Cannot access other customers' orders", 403, 'FORBIDDEN')
+      }
+      effectiveCustomerId = customerId
+    } else if (authenticatedCustomerId) {
+      // If no customerId provided but user is authenticated, use their ID
+      effectiveCustomerId = authenticatedCustomerId
+    } else {
+      // No authentication and no customerId - admins can still query all orders
+      // But for security, we require authentication for customer queries
+      // Admins should use admin endpoints
+      throw new ApiError('Authentication required to retrieve orders', 401, 'UNAUTHORIZED')
+    }
+
+    const where: any = {}
+
+    if (effectiveCustomerId) {
+      where.customer = { equals: effectiveCustomerId }
     }
 
     if (orderNumber) {
       where.orderNumber = { equals: orderNumber }
+
+      // Additional security: If looking up by order number, verify customer owns it
+      if (effectiveCustomerId) {
+        where.customer = { equals: effectiveCustomerId }
+      }
     }
 
     if (status) {

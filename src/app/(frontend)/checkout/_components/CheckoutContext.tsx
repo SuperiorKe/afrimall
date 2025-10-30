@@ -318,6 +318,21 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       const subtotal = items.reduce((sum, item) => sum + item.totalPrice, 0)
       const shipping = subtotal * 0.1
       const tax = subtotal * 0.1
+      const taxRate = 0.1 // 10% tax rate
+
+      // Prepare shipping address with phone from contactInfo
+      const shippingAddressWithPhone = {
+        ...formData.shippingAddress,
+        phone: formData.contactInfo.phone || '',
+      }
+
+      // Prepare billing address with phone from contactInfo
+      const billingAddressWithPhone = formData.sameAsBilling
+        ? shippingAddressWithPhone
+        : {
+            ...formData.billingAddress,
+            phone: formData.contactInfo.phone || '',
+          }
 
       const response = await fetch('/api/ecommerce/orders', {
         method: 'POST',
@@ -343,11 +358,13 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
           // Customer information
           customer: customerIdParam,
 
-          // Addresses
-          shippingAddress: formData.shippingAddress,
-          billingAddress: formData.sameAsBilling
-            ? formData.shippingAddress
-            : formData.billingAddress,
+          // Addresses with phone numbers
+          shippingAddress: shippingAddressWithPhone,
+          billingAddress: billingAddressWithPhone,
+
+          // Tax information
+          taxAmount: tax,
+          taxRate: taxRate,
 
           // Payment information - set as pending
           paymentMethod: 'credit_card',
@@ -367,13 +384,16 @@ export function CheckoutProvider({ children }: { children: React.ReactNode }) {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.error || errorData.message || 'Failed to create order'
-        
+
         // Check for specific inventory errors
-        if (errorMessage.includes('Insufficient inventory') || errorMessage.includes('INSUFFICIENT_INVENTORY')) {
+        if (
+          errorMessage.includes('Insufficient inventory') ||
+          errorMessage.includes('INSUFFICIENT_INVENTORY')
+        ) {
           console.error('Inventory error:', errorMessage)
           throw new Error('OUT_OF_STOCK')
         }
-        
+
         console.error('Failed to create order before payment:', errorMessage)
         throw new Error(errorMessage)
       }

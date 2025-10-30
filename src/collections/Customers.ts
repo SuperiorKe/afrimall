@@ -225,6 +225,22 @@ export const Customers: CollectionConfig = {
       },
     },
     {
+      name: 'resetPasswordToken',
+      type: 'text',
+      admin: {
+        description: 'Password reset token (auto-generated)',
+        hidden: true,
+      },
+    },
+    {
+      name: 'resetPasswordExpiration',
+      type: 'date',
+      admin: {
+        description: 'Password reset token expiration date',
+        hidden: true,
+      },
+    },
+    {
       name: 'status',
       type: 'select',
       required: true,

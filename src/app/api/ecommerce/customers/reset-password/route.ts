@@ -21,29 +21,52 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       throw new ApiError('Password must be at least 8 characters long', 400, 'WEAK_PASSWORD')
     }
 
+    // Trim and normalize token (remove any whitespace)
+    const normalizedToken = token.trim()
+
     // Find customer with the reset token
+    // Explicitly populate all fields to ensure we get the expiration date
     const existingCustomer = await payload.find({
       collection: 'customers',
       where: {
         resetPasswordToken: {
-          equals: token,
+          equals: normalizedToken,
         },
       },
       limit: 1,
+      depth: 0, // Don't populate relationships, just get the customer data
     })
 
     // Debug logging
     logger.info('Token validation attempt', 'API:customers:reset-password', {
-      tokenLength: token.length,
-      tokenPrefix: token.substring(0, 8),
+      tokenLength: normalizedToken.length,
+      tokenPrefix: normalizedToken.substring(0, 8),
+      tokenSuffix: normalizedToken.substring(normalizedToken.length - 8),
       customersFound: existingCustomer.docs.length,
     })
 
     if (existingCustomer.docs.length === 0) {
-      logger.warn('No customer found with reset token', 'API:customers:reset-password', {
-        tokenLength: token.length,
-        tokenPrefix: token.substring(0, 8),
+      // Additional debugging: Check if token exists at all (for debugging)
+      const allTokens = await payload.find({
+        collection: 'customers',
+        where: {
+          resetPasswordToken: {
+            exists: true,
+          },
+        },
+        limit: 5,
       })
+
+      logger.warn('No customer found with reset token', 'API:customers:reset-password', {
+        tokenLength: normalizedToken.length,
+        tokenPrefix: normalizedToken.substring(0, 8),
+        tokensInDb: allTokens.docs.length,
+        sampleTokenPrefixes: allTokens.docs
+          .slice(0, 3)
+          .map((c: any) => c.resetPasswordToken?.substring(0, 8))
+          .filter(Boolean),
+      })
+
       throw new ApiError('Invalid or expired reset token', 400, 'INVALID_TOKEN')
     }
 
@@ -135,30 +158,63 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
 
     const payload = await getPayload({ config: configPromise })
 
+    // Trim and normalize token
+    const normalizedToken = token.trim()
+
     // Find customer with the reset token
+    // Explicitly populate all fields to ensure we get the expiration date
     const existingCustomer = await payload.find({
       collection: 'customers',
       where: {
         resetPasswordToken: {
-          equals: token,
+          equals: normalizedToken,
         },
       },
       limit: 1,
+      depth: 0, // Don't populate relationships, just get the customer data
+    })
+
+    logger.info('GET token validation attempt', 'API:customers:reset-password', {
+      tokenLength: normalizedToken.length,
+      tokenPrefix: normalizedToken.substring(0, 8),
+      customersFound: existingCustomer.docs.length,
     })
 
     if (existingCustomer.docs.length === 0) {
+      logger.warn('GET: No customer found with reset token', 'API:customers:reset-password', {
+        tokenLength: normalizedToken.length,
+        tokenPrefix: normalizedToken.substring(0, 8),
+      })
       throw new ApiError('Invalid reset token', 400, 'INVALID_TOKEN')
     }
 
     const customer = existingCustomer.docs[0]
 
+    // Debug: Log what we got from the database
+    logger.info('Customer found, checking expiration', 'API:customers:reset-password', {
+      customerId: customer.id,
+      hasExpiration: !!customer.resetPasswordExpiration,
+      expirationType: typeof customer.resetPasswordExpiration,
+      expirationValue: customer.resetPasswordExpiration,
+    })
+
     // Check if token is expired
     if (!customer.resetPasswordExpiration) {
+      logger.warn('Customer found but no expiration date', 'API:customers:reset-password', {
+        customerId: customer.id,
+        resetPasswordToken: customer.resetPasswordToken?.substring(0, 8),
+      })
       throw new ApiError('Invalid reset token', 400, 'INVALID_TOKEN')
     }
 
     const expirationDate = new Date(customer.resetPasswordExpiration)
     const now = new Date()
+
+    logger.info('Comparing expiration dates', 'API:customers:reset-password', {
+      expirationDate: expirationDate.toISOString(),
+      now: now.toISOString(),
+      isExpired: now > expirationDate,
+    })
 
     if (now > expirationDate) {
       throw new ApiError('Reset token has expired', 400, 'EXPIRED_TOKEN')

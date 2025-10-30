@@ -65,6 +65,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       })
 
       // Update customer with reset token
+      // Store expiration as ISO string - Payload's date field accepts ISO strings
       await payload.update({
         collection: 'customers',
         id: customer.id,
