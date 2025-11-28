@@ -91,8 +91,21 @@ afrimall/
 │       ├── config.ts                # App configuration
 │       └── database-init.ts         # Database initialization
 ├── public/                          # Static assets
-├── docs/                           # Documentation
-├── scripts/                        # Build & deployment scripts
+├── docs/                           # Documentation (see docs/README.md)
+│   ├── guides/                     # Setup guides
+│   ├── deployment/                 # Deployment docs
+│   ├── architecture/               # Architecture docs
+│   ├── fixes/                      # Bug fix documentation
+│   ├── development/                # Development guides
+│   ├── planning/                   # Planning documents
+│   └── project/                    # Project-wide docs
+├── scripts/                        # Build & utility scripts (see scripts/README.md)
+│   ├── build/                      # Build scripts
+│   ├── database/                   # Database scripts
+│   ├── database-init/              # DB initialization
+│   └── tests/                      # Test scripts
+├── database/                       # Database files
+│   └── schema/                     # SQL schema files
 └── payload-types.ts               # Generated TypeScript types
 ```
 

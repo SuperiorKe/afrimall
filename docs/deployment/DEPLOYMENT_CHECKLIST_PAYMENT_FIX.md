@@ -33,11 +33,11 @@ This deployment includes critical fixes for:
 - `src/collections/Orders.ts` - Disabled blocking hooks for performance
 
 ### Documentation
-- `docs/ECOMMERCE_PAYMENT_PROCESSING.md` - Payment processing guide
-- `docs/PAYMENT_FIX_SUMMARY.md` - Problem and solution summary
-- `docs/ORDER_CREATION_FIX.md` - Order creation hang fix
-- `docs/INVENTORY_ERROR_HANDLING.md` - Error handling guide
-- `docs/EMAIL_FIX_SUMMARY.md` - Email fix documentation
+- `docs/architecture/ECOMMERCE_PAYMENT_PROCESSING.md` - Payment processing guide
+- `docs/fixes/PAYMENT_FIX_SUMMARY.md` - Problem and solution summary
+- `docs/fixes/ORDER_CREATION_FIX.md` - Order creation hang fix
+- `docs/fixes/INVENTORY_ERROR_HANDLING.md` - Error handling guide
+- `docs/fixes/EMAIL_FIX_SUMMARY.md` - Email fix documentation
 
 ## Deployment Steps
 
