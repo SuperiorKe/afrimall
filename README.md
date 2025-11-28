@@ -154,7 +154,21 @@ afrimall/
 │   └── types/                # TypeScript definitions
 │       └── ecommerce.ts      # E-commerce types
 ├── public/                   # Static assets
-├── docs/                     # Documentation
+├── docs/                     # Documentation (see docs/README.md)
+│   ├── guides/              # Setup guides
+│   ├── deployment/          # Deployment docs
+│   ├── architecture/        # Architecture docs
+│   ├── fixes/               # Bug fix documentation
+│   ├── development/         # Development guides
+│   ├── planning/            # Planning documents
+│   └── project/             # Project-wide docs
+├── scripts/                  # Build and utility scripts (see scripts/README.md)
+│   ├── build/               # Build scripts
+│   ├── database/            # Database scripts
+│   ├── database-init/       # DB initialization
+│   └── tests/               # Test scripts
+├── database/                 # Database files
+│   └── schema/              # SQL schema files
 └── payload-types.ts          # Generated types
 ```
 
@@ -360,10 +374,16 @@ git push origin feature/amazing-feature
 
 ## 📚 Documentation
 
-- [API Documentation](docs/API_PRODUCTS.md)
-- [Admin Setup Guide](docs/ADMIN_SETUP.md)
-- [Deployment Guide](docs/DEPLOYMENT.md)
-- [Contributing Guidelines](docs/CONTRIBUTING.md)
+Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+
+- **[Documentation Index](./docs/README.md)** - Complete documentation navigation
+- **[Guides](./docs/guides/)** - Setup guides and tutorials
+  - [API Documentation](./docs/guides/API_PRODUCTS.md)
+  - [Email Setup Guide](./docs/guides/EMAIL_SETUP_GUIDE.md)
+  - [S3 Setup Guide](./docs/guides/S3_SETUP_GUIDE.md)
+- **[Deployment](./docs/deployment/)** - Deployment guides and checklists
+- **[Architecture](./docs/architecture/)** - Technical architecture details
+- **[Contributing Guidelines](./docs/project/CONTRIBUTING.md)** - How to contribute
 
 ## 📄 License
 

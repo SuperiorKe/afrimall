@@ -82,6 +82,8 @@ export default buildConfig({
   editor: defaultLexical,
   db:
     // Use SQLite during build time or when no DATABASE_URL is provided
+    // Note: SQLite database file (afrimall.db) is stored in project root for easy access
+    // See database/schema/ for SQL schema files
     useSQLite || !process.env.DATABASE_URL
       ? sqliteAdapter({
           client: {
