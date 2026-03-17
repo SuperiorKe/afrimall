@@ -127,19 +127,30 @@ export default async function ProductPage({ params }: Props) {
 export const dynamic = 'force-dynamic'
 
 export async function generateStaticParams() {
+  // Skip static generation in demo mode or if DB is unavailable
   if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
     return []
   }
 
+  // Skip static generation during build if database is unreachable
   try {
-    const payload = await getPayload({ config: configPromise })
-    const products = await payload.find({
-      collection: 'products',
-      limit: 100
-    })
-    return products.docs.map((p) => ({ slug: p.slug }))
-  } catch {
-    // DB unavailable — skip static generation, pages render on demand
+    const payload = await Promise.race([
+      getPayload({ config: configPromise }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('DB timeout')), 5000))
+    ])
+
+    const products = await Promise.race([
+      (payload as any).find({
+        collection: 'products',
+        limit: 100
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('DB timeout')), 5000))
+    ])
+
+    return (products as any).docs.map((p: any) => ({ slug: p.slug }))
+  } catch (error: any) {
+    // Log for debugging but don't fail the build
+    console.warn('⚠️ Static generation skipped:', error?.message || String(error))
     return []
   }
 }
