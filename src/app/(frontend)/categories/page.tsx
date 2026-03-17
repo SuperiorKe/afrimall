@@ -16,7 +16,91 @@ export const metadata: Metadata = {
 // Force dynamic rendering to ensure real-time data updates
 export const dynamic = 'force-dynamic'
 
-export default async function CategoriesPage() {
+const MOCK_CATEGORIES = [
+  {
+    id: 1,
+    name: 'Electronics',
+    slug: 'electronics',
+    description: 'Phones, laptops, gadgets and accessories',
+    productCount: 24,
+    imageUrl: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800&h=600&fit=crop',
+  },
+  {
+    id: 2,
+    name: 'Fashion & Apparel',
+    slug: 'fashion',
+    description: 'Clothing, shoes and accessories from African designers',
+    productCount: 38,
+    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800&h=600&fit=crop',
+  },
+  {
+    id: 3,
+    name: 'Home & Kitchen',
+    slug: 'home-kitchen',
+    description: 'Furniture, cookware and home décor',
+    productCount: 19,
+    imageUrl: 'https://images.unsplash.com/photo-1505691723518-36a5ac3be353?w=800&h=600&fit=crop',
+  },
+  {
+    id: 4,
+    name: 'Beauty & Health',
+    slug: 'beauty-health',
+    description: 'Skincare, haircare and wellness products',
+    productCount: 31,
+    imageUrl: 'https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=800&h=600&fit=crop',
+  },
+  {
+    id: 5,
+    name: 'Food & Groceries',
+    slug: 'food-groceries',
+    description: 'Authentic African foods, spices and beverages',
+    productCount: 27,
+    imageUrl: 'https://images.unsplash.com/photo-1504753793650-d4a2b783c15e?w=800&h=600&fit=crop',
+  },
+  {
+    id: 6,
+    name: 'Sports & Outdoors',
+    slug: 'sports-outdoors',
+    description: 'Fitness gear and outdoor equipment',
+    productCount: 15,
+    imageUrl: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800&h=600&fit=crop',
+  },
+  {
+    id: 7,
+    name: 'Art & Crafts',
+    slug: 'art-crafts',
+    description: 'Handmade crafts, paintings and sculptures',
+    productCount: 42,
+    imageUrl: 'https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=800&h=600&fit=crop',
+  },
+  {
+    id: 8,
+    name: 'Books & Education',
+    slug: 'books-education',
+    description: 'African literature, textbooks and learning materials',
+    productCount: 18,
+    imageUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=800&h=600&fit=crop',
+  },
+]
+
+async function getCategories() {
+  if (process.env.NEXT_PUBLIC_DEMO_MODE === 'true') {
+    return {
+      categoriesWithCounts: MOCK_CATEGORIES.map((category) => ({
+        id: category.id,
+        title: category.name,
+        description: category.description,
+        image: {
+          url: category.imageUrl,
+          alt: category.name,
+        } as Media,
+        productCount: category.productCount,
+        featured: false,
+      })),
+      isDemo: true,
+    }
+  }
+
   try {
     const payload = await getPayload({ config: configPromise })
 
@@ -56,109 +140,78 @@ export default async function CategoriesPage() {
       }),
     )
 
-    // Separate featured categories
-    const featuredCategories = categoriesWithCounts.filter((cat) => cat.featured)
+    return {
+      categoriesWithCounts,
+      isDemo: false,
+    }
+  } catch (error) {
+    console.error('[Categories Page] Failed to load categories:', error)
+    return {
+      categoriesWithCounts: MOCK_CATEGORIES.map((category) => ({
+        id: category.id,
+        title: category.name,
+        description: category.description,
+        image: {
+          url: category.imageUrl,
+          alt: category.name,
+        } as Media,
+        productCount: category.productCount,
+        featured: false,
+      })),
+      isDemo: true,
+    }
+  }
+}
 
-    return (
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <Logo className="h-16 w-16" />
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Browse Categories
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Explore our curated collection of African products across different categories. Discover
-            authentic crafts, jewelry, textiles, and more from talented African entrepreneurs.
-          </p>
+export default async function CategoriesPage() {
+  const { categoriesWithCounts, isDemo } = await getCategories()
+
+  // Separate featured categories
+  const featuredCategories = categoriesWithCounts.filter((cat) => cat.featured)
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="text-center mb-12">
+        <div className="flex justify-center mb-6">
+          <Logo className="h-16 w-16" />
         </div>
+        <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+          Browse Categories
+        </h1>
+        <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+          Explore our curated collection of African products across different categories. Discover
+          authentic crafts, jewelry, textiles, and more from talented African entrepreneurs.
+        </p>
+      </div>
 
-        {/* Featured Categories */}
-        {featuredCategories.length > 0 && (
-          <div className="mb-16">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
-              Featured Categories
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {featuredCategories.map((category) => (
-                <CategoryCard key={category.id} category={category} featured />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* All Categories */}
-        <div>
+      {/* Featured Categories */}
+      {featuredCategories.length > 0 && (
+        <div className="mb-16">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
-            All Categories
+            Featured Categories
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {categoriesWithCounts.map((category) => (
-              <CategoryCard key={category.id} category={category} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {featuredCategories.map((category) => (
+              <CategoryCard key={category.id} category={category} featured />
             ))}
           </div>
         </div>
+      )}
 
-        {/* Empty State */}
-        {categories.docs.length === 0 && (
-          <div className="text-center py-16">
-            <div className="text-gray-400 mb-4">
-              <svg
-                className="w-16 h-16 mx-auto"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1}
-                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                />
-              </svg>
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-              No categories found
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              Categories will appear here once they are added.
-            </p>
-          </div>
-        )}
-      </div>
-    )
-  } catch (error) {
-    console.error('[Categories Page] Failed to load categories:', error)
-    // Return a fallback UI with error information
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-6">
-            <Logo className="h-16 w-16" />
-          </div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-            Browse Categories
-          </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Explore our curated collection of African products across different categories.
-          </p>
-        </div>
-        <div className="text-center py-16">
-          <div className="text-red-500 dark:text-red-400 mb-4">
-            <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-            </svg>
-            <h3 className="text-lg font-medium mb-2">Unable to load categories</h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              There was an error loading the categories. Please try refreshing the page.
-            </p>
-          </div>
+      {/* All Categories */}
+      <div>
+        <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-8 text-center">
+          All Categories
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {categoriesWithCounts.map((category) => (
+            <CategoryCard key={category.id} category={category} />
+          ))}
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 }
 
 // Category Card Component
