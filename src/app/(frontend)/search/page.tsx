@@ -1,67 +1,56 @@
 import type { Metadata } from 'next/types'
 
 import { CollectionArchive } from '@/components/CollectionArchive'
-import configPromise from '@payload-config'
-import { getPayload } from 'payload'
 import React from 'react'
 import { Search } from '@/search/Component'
 import PageClient from './page.client'
 import { CardPostData } from '@/components/Card'
+import { MOCK_PRODUCTS } from '@/lib/mockProducts'
 
 type Args = {
   searchParams: Promise<{
     q: string
   }>
 }
+
 // Force dynamic rendering to avoid static generation issues
 export const dynamic = 'force-dynamic'
 
 export default async function Page({ searchParams: searchParamsPromise }: Args) {
   try {
     const { q: query } = await searchParamsPromise
-    const payload = await getPayload({ config: configPromise })
 
-    const posts = await payload.find({
-      collection: 'search',
-      depth: 1,
-      limit: 12,
-      select: {
-        title: true,
-        slug: true,
-        categories: true,
-        meta: true,
-      },
-      // pagination: false reduces overhead if you don't need totalDocs
-      pagination: false,
-      ...(query
-        ? {
-            where: {
-              or: [
-                {
-                  title: {
-                    like: query,
-                  },
-                },
-                {
-                  'meta.description': {
-                    like: query,
-                  },
-                },
-                {
-                  'meta.title': {
-                    like: query,
-                  },
-                },
-                {
-                  slug: {
-                    like: query,
-                  },
-                },
-              ],
-            },
-          }
-        : {}),
+    // Filter MOCK_PRODUCTS based on the search query
+    const lowerQuery = query ? query.toLowerCase() : ''
+    const filteredProducts = MOCK_PRODUCTS.filter((product) => {
+      if (!lowerQuery) return true
+      return (
+        product.title.toLowerCase().includes(lowerQuery) ||
+        product.description.toLowerCase().includes(lowerQuery) ||
+        product.category.toLowerCase().includes(lowerQuery)
+      )
     })
+
+    // Map MOCK_PRODUCTS to the format expected by CollectionArchive and Card components
+    const posts: CardPostData[] = filteredProducts.map((p) => ({
+      title: p.title,
+      slug: p.slug,
+      categories: [
+        {
+          id: 1,
+          title: p.category,
+        },
+      ],
+      meta: {
+        title: p.title,
+        description: p.description,
+        image: {
+          id: 1,
+          url: p.imageUrl,
+          alt: p.title,
+        },
+      },
+    })) as any // Type assertion to bypass strict CardPostData mismatch in case there are missing Payload properties
 
     return (
       <div className="pt-24 pb-24">
@@ -76,16 +65,22 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
           </div>
         </div>
 
-        {posts.totalDocs > 0 ? (
-          <CollectionArchive posts={posts.docs as CardPostData[]} />
+        {posts.length > 0 ? (
+          <CollectionArchive posts={posts} />
         ) : (
-          <div className="container">No results found.</div>
+          <div className="container">
+            <div className="text-center py-16">
+              <p className="text-gray-500 dark:text-gray-400">
+                No results found for &quot;{query}&quot;. Try exploring other categories.
+              </p>
+            </div>
+          </div>
         )}
       </div>
     )
   } catch (error) {
-    console.warn('Failed to load search results during build:', error)
-    // Return a fallback UI during build
+    console.warn('Failed to load search results:', error)
+    // Fallback UI
     return (
       <div className="pt-24 pb-24">
         <PageClient />
@@ -101,7 +96,7 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
         <div className="container">
           <div className="text-center py-16">
             <p className="text-gray-500 dark:text-gray-400">
-              Search results will be loaded at runtime.
+              An error occurred while searching. Please try again later.
             </p>
           </div>
         </div>
@@ -112,6 +107,6 @@ export default async function Page({ searchParams: searchParamsPromise }: Args) 
 
 export function generateMetadata(): Metadata {
   return {
-    title: `Payload Website Template Search`,
+    title: `Search | Afrimall`,
   }
 }
