@@ -146,7 +146,7 @@ export async function Footer() {
           <div className="border-t border-gray-300 dark:border-afrimall-gold/20 pt-6 mt-6">
             <div className="text-center">
               <p className="text-gray-600 dark:text-gray-500 text-sm">
-                Built with ❤️ by{' '}
+                Built by{' '}
                 <a
                   href="https://github.com/SuperiorKe/"
                   target="_blank"
